@@ -2,6 +2,11 @@
 
 ![Concept](./assets/ShinRL_Concept.svg)
 
+## Overview
+
+* This branch provides minimal implementations for our Neurips DRL WS 2021 paper.
+* The latest ShinRL is faster and more elaborated. Please visit [JAX](https://github.com/omron-sinicx/ShinRL/tree/jax) branch.
+
 ## Requirements
 
 1. Create Conda Environment
