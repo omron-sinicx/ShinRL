@@ -15,6 +15,7 @@ install_requires = [
     "dm-haiku",
     "optax",
     "distrax>=0.0.2",
+    "celluloid",
 ]
 
 extras_require = {

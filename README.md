@@ -8,7 +8,7 @@ Please take a look at [the paper](https://arxiv.org/abs/2112.04123) for details.
 ## QuickStart
 
 ![QuickStart](assets/quickstart.png)
-You can run the codes at: [experiments/QuickStart.ipynb](experiments/QuickStart.ipynb).
+Try ShinRL at: [experiments/QuickStart.ipynb](experiments/QuickStart.ipynb).
 
 ```python
 import gym
@@ -48,7 +48,7 @@ env.plot_S(q0, title="Optimal")
 ```
 
 ![Pendulum](assets/pendulum.gif)
-![Example](assets/example.png)
+![Example](assets/continual.gif)
 
 
 # :zap: Key Modules

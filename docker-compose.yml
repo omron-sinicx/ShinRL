@@ -1,0 +1,17 @@
+version: "2.4"
+
+services:
+  dev:
+    build: .
+    image: sinicx/shinrl_jax
+    container_name: ${USER}.shinrl_jax 
+    runtime: nvidia
+    volumes:
+      - $PWD:/workspace
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - XLA_PYTHON_CLIENT_PREALLOCATE=false
+    tty: true
+    stdin_open: true
+    ports:
+      - 8888
