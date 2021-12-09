@@ -138,6 +138,13 @@ cd ShinRL
 make format
 ```
 
+# Docker
+
+```bash
+cd ShinRL
+docker-compose up
+```
+
 # Citation
 
 ```
