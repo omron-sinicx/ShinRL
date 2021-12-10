@@ -2,7 +2,7 @@
 
 * TbInitMixIn: Initialize tables for oracle analysis.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

@@ -1,9 +1,8 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
-from functools import cached_property
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import gym
 import jax.numpy as jnp
@@ -11,7 +10,7 @@ import numpy as np
 from chex import Array
 from matplotlib.axes import Axes
 
-from shinrl import ShinEnv
+from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
 
 from .core import calc, plot
 from .core.config import MountainCarConfig
@@ -34,22 +33,7 @@ class MountainCar(ShinEnv):
     def dA(self) -> int:
         return self.config.dA
 
-    @cached_property
-    def init_probs(self) -> Array:
-        pos_step = (self.config.pos_max - self.config.pos_min) / (
-            self.config.pos_res - 1
-        )
-        ini_pos = np.arange(-0.6, -0.4, pos_step)
-        idxs = []
-        for pos in ini_pos:
-            idxs.append(calc.pos_vel_to_state(self.config, pos, 0.0))
-        idxs = np.unique(np.array(idxs))
-        probs = np.ones_like(idxs, dtype=float) / len(idxs)
-        init_probs = np.zeros(self.dS)
-        np.put(init_probs, idxs, probs)
-        return jnp.array(init_probs)
-
-    @cached_property
+    @property
     def observation_space(self) -> gym.spaces.Space:
         if self.config.obs_mode == MountainCarConfig.OBS_MODE.tuple:
             space = gym.spaces.Box(
@@ -65,7 +49,7 @@ class MountainCar(ShinEnv):
             )
         return space
 
-    @cached_property
+    @property
     def action_space(self) -> gym.spaces.Space:
         if self.config.act_mode == MountainCarConfig.ACT_MODE.discrete:
             space = gym.spaces.Discrete(self.config.dA)
@@ -77,17 +61,32 @@ class MountainCar(ShinEnv):
             )
         return space
 
-    def transition(self, state: int, action: int) -> Tuple[Array, Array]:
-        return calc.transition(self.config, state, action)
+    def _init_probs(self) -> Array:
+        pos_step = (self.config.pos_max - self.config.pos_min) / (
+            self.config.pos_res - 1
+        )
+        ini_pos = np.arange(-0.6, -0.4, pos_step)
+        idxs = []
+        for pos in ini_pos:
+            idxs.append(calc.pos_vel_to_state(self.config, pos, 0.0))
+        idxs = np.unique(np.array(idxs))
+        probs = np.ones_like(idxs, dtype=float) / len(idxs)
+        init_probs = np.zeros(self.dS)
+        np.put(init_probs, idxs, probs)
+        return jnp.array(init_probs)
 
-    def reward(self, state: int, action: int) -> float:
-        return calc.reward(self.config, state, action)
+    def _make_transition_fn(self) -> TRAN_FN:
+        return lambda state, action: calc.transition(self.config, state, action)
 
-    def observation(self, state: int) -> Array:
+    def _make_reward_fn(self) -> REW_FN:
+        return lambda state, action: calc.reward(self.config, state, action)
+
+    def _make_observation_fn(self) -> OBS_FN:
         if self.config.obs_mode == MountainCarConfig.OBS_MODE.tuple:
-            return calc.observation_tuple(self.config, state)
+            obs_fn = calc.observation_tuple
         elif self.config.obs_mode == MountainCarConfig.OBS_MODE.image:
-            return calc.observation_image(self.config, state)
+            obs_fn = calc.observation_image
+        return lambda state: obs_fn(self.config, state)
 
     def plot_S(
         self,

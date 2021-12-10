@@ -1,6 +1,5 @@
 import random
-from functools import cached_property
-from typing import Optional, Tuple
+from typing import Optional
 
 import gym
 import jax
@@ -8,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 from chex import Array
 
-from shinrl import ShinEnv
+from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
 
 from .core import calc
 from .core.config import MazeConfig
@@ -37,14 +36,7 @@ class Maze(ShinEnv):
     def dA(self) -> int:
         return 5
 
-    @cached_property
-    def init_probs(self) -> Array:
-        init_states, probs = calc.init_probs(self.maze)
-        init_probs = np.zeros(self.dS)
-        np.put(init_probs, init_states, probs)
-        return jnp.array(init_probs)
-
-    @cached_property
+    @property
     def observation_space(self) -> gym.spaces.Space:
         if self.config.obs_mode == MazeConfig.OBS_MODE.onehot:
             space = gym.spaces.Box(0, 1, (self.maze.shape[0] + self.maze.shape[1],))
@@ -57,21 +49,29 @@ class Maze(ShinEnv):
             )
         return space
 
-    @cached_property
+    @property
     def action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(5)
 
-    def transition(self, state: int, action: int) -> Tuple[Array, Array]:
-        return calc.transition(self.config, self.maze, state, action)
+    def _init_probs(self) -> Array:
+        init_states, probs = calc.init_probs(self.maze)
+        init_probs = np.zeros(self.dS)
+        np.put(init_probs, init_states, probs)
+        return jnp.array(init_probs)
 
-    def reward(self, state: int, action: int) -> float:
-        return calc.reward(self.maze, state, action)
+    def _make_transition_fn(self) -> TRAN_FN:
+        return lambda state, action: calc.transition(
+            self.config, self.maze, state, action
+        )
 
-    def observation(self, state: int) -> Array:
+    def _make_reward_fn(self) -> REW_FN:
+        return lambda state, action: calc.reward(self.maze, state, action)
+
+    def _make_observation_fn(self) -> OBS_FN:
         if self.config.obs_mode == MazeConfig.OBS_MODE.onehot:
-            return calc.onehot_observation(self.maze, state)
+            return lambda state: calc.onehot_observation(self.maze, state)
         elif self.config.obs_mode == MazeConfig.OBS_MODE.random:
-            return self.random_obs[state]
+            return lambda state: self.random_obs[state]
 
     @staticmethod
     def str_to_maze_array(string: str) -> Array:

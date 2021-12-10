@@ -1,6 +1,6 @@
 """ JAX functions for sparse multiplication. 
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

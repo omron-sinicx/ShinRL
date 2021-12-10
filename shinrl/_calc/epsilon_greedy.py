@@ -1,6 +1,6 @@
 """ JAX functions for epsilon-greedy policy.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

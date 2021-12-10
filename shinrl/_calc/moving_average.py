@@ -1,6 +1,6 @@
 """ JAX functions to Calculate moving average.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

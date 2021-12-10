@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 import abc
 

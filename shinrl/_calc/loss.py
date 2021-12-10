@@ -1,6 +1,6 @@
 """JAX functions to compute losses.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 
 import chex

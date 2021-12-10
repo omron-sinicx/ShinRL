@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from typing import Tuple, Union
 
@@ -27,7 +27,7 @@ def force_to_act(config: MountainCarConfig, force: float) -> int:
     force_max, dA = config.force_max, config.dA
     force = jnp.clip(force, a_min=-force_max, a_max=force_max - 1e-5)
     force_step = (2 * force_max) / dA
-    return jnp.floor((force + force_max) / force_step).astype(int)
+    return jnp.floor((force + force_max) / force_step).astype(jnp.uint32)
 
 
 @jax.jit
@@ -84,8 +84,8 @@ def pos_vel_to_state(config: MountainCarConfig, pos: float, vel: float) -> float
     pos_min, vel_min = config.pos_min, config.vel_min
     pos_step = (pos_max - pos_min) / (pos_res - 1)
     vel_step = (vel_max - vel_min) / (vel_res - 1)
-    pos_round = jnp.floor((pos - pos_min) / pos_step).astype(int)
-    vel_round = jnp.floor((vel - vel_min) / vel_step).astype(int)
+    pos_round = jnp.floor((pos - pos_min) / pos_step).astype(jnp.uint32)
+    vel_round = jnp.floor((vel - vel_min) / vel_step).astype(jnp.uint32)
     return pos_round + pos_res * vel_round
 
 
@@ -103,7 +103,7 @@ def transition(
 
     def body_fn(_, pos_vel):
         pos, vel = pos_vel
-        vel = vel + force * 0.001 + jnp.cos(3 * pos) * (-0.0025)
+        vel = vel + force + jnp.cos(3 * pos) * (-0.0025)
         vel = jnp.clip(vel, config.vel_min, config.vel_max)
         pos = pos + vel
         pos = jnp.clip(pos, config.pos_min, config.pos_max)
@@ -146,13 +146,13 @@ def observation_image(config: MountainCarConfig, state: int) -> Array:
     image = jnp.zeros((28, 28), dtype=float)
     pos2pxl = 28 / (config.pos_max - config.pos_min)
     to_hight = lambda _x: jnp.sin(3 * _x) * 0.45 + 0.75
-    x = ((pos - config.pos_min) * pos2pxl).astype(int)
-    y = (to_hight(pos - config.pos_min) * pos2pxl).astype(int)
+    x = ((pos - config.pos_min) * pos2pxl).astype(jnp.uint32)
+    y = (to_hight(pos - config.pos_min) * pos2pxl).astype(jnp.uint32)
     pos_circle = srl.draw_circle(image, x, y, 4)
     image = image + pos_circle * 0.8
 
-    x = ((pos - vel * 5.0 - config.pos_min) * pos2pxl).astype(int)
-    y = (to_hight(pos - vel * 5.0 - config.pos_min) * pos2pxl).astype(int)
+    x = ((pos - vel * 5.0 - config.pos_min) * pos2pxl).astype(jnp.uint32)
+    y = (to_hight(pos - vel * 5.0 - config.pos_min) * pos2pxl).astype(jnp.uint32)
     vel_circle = srl.draw_circle(image, x, y, 4)
     image = image + vel_circle * 0.2
     return jnp.expand_dims(image, axis=-1)  # 28x28x1

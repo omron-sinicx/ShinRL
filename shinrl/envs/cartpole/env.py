@@ -1,16 +1,14 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
-from functools import cached_property
-from typing import Tuple
 
 import gym
 import jax.numpy as jnp
 import numpy as np
 from chex import Array
 
-from shinrl import ShinEnv
+from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
 
 from .core import calc
 from .core.config import CartPoleConfig
@@ -38,8 +36,32 @@ class CartPole(ShinEnv):
     def dA(self) -> int:
         return self.config.dA
 
-    @cached_property
-    def init_probs(self) -> Array:
+    @property
+    def observation_space(self) -> gym.spaces.Space:
+        high = jnp.array(
+            [
+                self.config.x_max,
+                self.config.x_dot_max,
+                self.config.th_max,
+                self.config.th_dot_max,
+            ]
+        )
+        space = gym.spaces.Box(low=-high, high=high, dtype=float)
+        return space
+
+    @property
+    def action_space(self) -> gym.spaces.Space:
+        if self.config.act_mode == CartPoleConfig.ACT_MODE.discrete:
+            space = gym.spaces.Discrete(self.config.dA)
+        elif self.config.act_mode == CartPoleConfig.ACT_MODE.continuous:
+            space = gym.spaces.Box(
+                low=np.array(-self.config.force_max),
+                high=np.array(self.config.force_max),
+                dtype=float,
+            )
+        return space
+
+    def _init_probs(self) -> Array:
         ini_x = 0
         ini_x_dot = 0
         th_step = 2 * self.config.th_max / (self.config.th_res - 1)
@@ -59,36 +81,11 @@ class CartPole(ShinEnv):
         np.put(init_probs, idxs, probs)
         return jnp.array(init_probs)
 
-    @cached_property
-    def observation_space(self) -> gym.spaces.Space:
-        high = jnp.array(
-            [
-                self.config.x_max,
-                self.config.x_dot_max,
-                self.config.th_max,
-                self.config.th_dot_max,
-            ]
-        )
-        space = gym.spaces.Box(low=-high, high=high, dtype=float)
-        return space
+    def _make_transition_fn(self) -> TRAN_FN:
+        return lambda state, action: calc.transition(self.config, state, action)
 
-    @cached_property
-    def action_space(self) -> gym.spaces.Space:
-        if self.config.act_mode == CartPoleConfig.ACT_MODE.discrete:
-            space = gym.spaces.Discrete(self.config.dA)
-        elif self.config.act_mode == CartPoleConfig.ACT_MODE.continuous:
-            space = gym.spaces.Box(
-                low=np.array(-self.config.force_max),
-                high=np.array(self.config.force_max),
-                dtype=float,
-            )
-        return space
+    def _make_reward_fn(self) -> REW_FN:
+        return lambda state, action: calc.reward(self.config, state, action)
 
-    def transition(self, state: int, action: int) -> Tuple[Array, Array]:
-        return calc.transition(self.config, state, action)
-
-    def reward(self, state: int, action: int) -> float:
-        return calc.reward(self.config, state, action)
-
-    def observation(self, state: int) -> Array:
-        return calc.observation_tuple(self.config, state)
+    def _make_observation_fn(self) -> OBS_FN:
+        return lambda state: calc.observation_tuple(self.config, state)

@@ -1,6 +1,6 @@
 """MixIns to execute one-step update.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

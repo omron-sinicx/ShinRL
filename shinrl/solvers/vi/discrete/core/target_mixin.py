@@ -1,6 +1,6 @@
 """MixIns to compute the target value of VI-based algorithms.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from typing import Optional
 

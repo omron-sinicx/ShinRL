@@ -40,7 +40,7 @@ from ._utils.tables import TbDict
 
 # Implemented environments with access to the *oracle* quantities.
 from .envs.base.config import EnvConfig
-from .envs.base.env import ShinEnv
+from .envs.base.env import OBS_FN, REW_FN, TRAN_FN, ShinEnv
 from .envs.cartpole.env import CartPole
 from .envs.maze.env import Maze
 from .envs.mountaincar.env import MountainCar

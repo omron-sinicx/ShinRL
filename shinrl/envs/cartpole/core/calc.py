@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from typing import Tuple
 
@@ -25,7 +25,7 @@ def force_to_act(config: CartPoleConfig, force: float) -> int:
     force_max, dA = config.force_max, config.dA
     force = jnp.clip(force, a_min=-force_max, a_max=force_max - 1e-5)
     force_step = (2 * force_max) / dA
-    return jnp.floor((force + force_max) / force_step).astype(int)
+    return jnp.floor((force + force_max) / force_step).astype(jnp.uint32)
 
 
 @jax.jit
@@ -101,14 +101,14 @@ def x_th_to_state(
     th_step = 2 * th_max / (th_res - 1)
     th_dot_step = 2 * th_dot_max / (th_dot_res - 1)
 
-    x_round = jnp.floor((x + x_max) / x_step).astype(int)
-    x_dot_round = jnp.floor((x_dot + x_dot_max) / x_dot_step).astype(int)
-    th_round = jnp.floor((th + th_max) / th_step).astype(int)
-    th_dot_round = jnp.floor((th_dot + th_dot_max) / th_dot_step).astype(int)
+    x_round = jnp.floor((x + x_max) / x_step)
+    x_dot_round = jnp.floor((x_dot + x_dot_max) / x_dot_step)
+    th_round = jnp.floor((th + th_max) / th_step)
+    th_dot_round = jnp.floor((th_dot + th_dot_max) / th_dot_step)
     state_id = x_round + x_res * (
         x_dot_round + x_dot_res * (th_round + th_res * th_dot_round)
     )
-    return state_id
+    return state_id.astype(jnp.uint32)
 
 
 @jax.jit
@@ -147,7 +147,9 @@ def transition(config: CartPoleConfig, state: int, action: int) -> Tuple[Array, 
     # one step is not enough when state is discretized
     x, x_dot, th, th_dot = jax.lax.fori_loop(0, 1, body_fn, (x, x_dot, th, th_dot))
     next_state = x_th_to_state(config, x, x_dot, th, th_dot)
-    next_state = jax.lax.cond(out, lambda _: state, lambda _: next_state, None)
+    next_state = jax.lax.cond(
+        out, lambda _: state.astype(jnp.uint32), lambda _: next_state, None
+    )
     next_state = next_state.reshape(-1)
     prob = jnp.array((1.0,), dtype=float)
     return next_state, prob

@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import chex
 import gym
 import jax.numpy as jnp
@@ -27,28 +25,30 @@ class MockEnv(ShinEnv):
     def dA(self) -> int:
         return self.config.dA
 
-    @cached_property
-    def init_probs(self):
-        return jnp.array([0.2, 0.8, 0, 0, 0, 0, 0, 0, 0, 0])
-
-    @cached_property
+    @property
     def observation_space(self):
         return gym.spaces.Box(low=jnp.array([0, 0]), high=jnp.array([15, 15]))
 
-    @cached_property
+    @property
     def action_space(self):
         return gym.spaces.Discrete(5)
 
-    def transition(self, state, action):
-        next_state = jnp.array([state, (state + action) % 10], dtype=int)
-        prob = jnp.array([0.2, 0.8], dtype=float)
-        return next_state, prob
+    def _init_probs(self):
+        return jnp.array([0.2, 0.8, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    def reward(self, state, action):
-        return jnp.array(state + action, dtype=float)
+    def _make_transition_fn(self):
+        def transition(state, action):
+            next_state = jnp.array([state, (state + action) % 10], dtype=int)
+            prob = jnp.array([0.2, 0.8], dtype=float)
+            return next_state, prob
 
-    def observation(self, state):
-        return jnp.array([state, state + 5], dtype=float)
+        return transition
+
+    def _make_reward_fn(self):
+        return lambda state, action: jnp.array(state + action, dtype=float)
+
+    def _make_observation_fn(self):
+        return lambda state: jnp.array([state, state + 5], dtype=float)
 
 
 def test_reset_step():

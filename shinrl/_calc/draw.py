@@ -1,6 +1,6 @@
 """ JAX functions for drawing images on an array. 
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 import functools
 from typing import Tuple
@@ -41,8 +41,8 @@ def line_aa(
     valbot = jnp.floor(y) - y + 1
     valtop = y - jnp.floor(y)
 
-    xx = jnp.concatenate((jnp.floor(y), jnp.floor(y) + 1)).astype(int)
-    yy = jnp.concatenate((x, x)).astype(int)
+    xx = jnp.concatenate((jnp.floor(y), jnp.floor(y) + 1)).astype(jnp.uint32)
+    yy = jnp.concatenate((x, x)).astype(jnp.uint32)
     val = jnp.concatenate((valbot, valtop))
 
     xx, yy = jax.lax.cond(flag1, lambda _: (yy, xx), lambda _: (xx, yy), None)

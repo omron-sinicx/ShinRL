@@ -19,8 +19,8 @@ def disc_pos_vel(
 ) -> Tuple[float, float]:
     pos_step = (config.pos_max - config.pos_min) / (config.pos_res - 1)
     vel_step = (config.vel_max - config.vel_min) / (config.pos_res - 1)
-    pos_round = (jnp.floor((pos - config.pos_min) / pos_step)).astype(int)
-    pos_vel = (jnp.floor((vel - config.vel_min) / vel_step)).astype(int)
+    pos_round = (jnp.floor((pos - config.pos_min) / pos_step)).astype(jnp.uint32)
+    pos_vel = (jnp.floor((vel - config.vel_min) / vel_step)).astype(jnp.uint32)
     return pos_round, pos_vel
 
 

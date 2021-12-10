@@ -3,7 +3,7 @@
 * NetInitMixIn: Initialize neural networks.
 * NetActMixIn: For exploration and exploitation with neural networks.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

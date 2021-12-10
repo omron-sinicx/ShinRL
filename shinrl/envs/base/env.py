@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from functools import cached_property
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import gym
 import jax
@@ -9,7 +8,7 @@ import numpy as np
 
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from chex import Array, PRNGKey
 from cpprb import ReplayBuffer
@@ -17,17 +16,22 @@ from cpprb import ReplayBuffer
 import shinrl as srl
 from shinrl import MDP, EnvConfig
 
-Trans = Tuple[Array, float, bool, Dict[str, Any]]  # obs, rew, done, info
-
-
-@jax.jit
-def choice_and_step_key(key: PRNGKey, a: Array, p: Array) -> Tuple[Array, PRNGKey]:
-    new_key, key = jax.random.split(key)
-    return jax.random.choice(key, a, p=p), new_key
+OBS, REW, DONE, INFO = Array, float, bool, Dict[str, Any]
+S, A = int, int
+STATES, PROBS = Array, Array
+TRAN_FN = Callable[[S, A], Tuple[STATES, PROBS]]
+REW_FN = Callable[[S, A], REW]
+OBS_FN = Callable[[S], OBS]
 
 
 class ShinEnv(ABC, gym.Env):
     """
+    ABC to implement a new shin-environment.
+    You need to implement four functions:
+    * _init_probs: Return a probability array (dS).
+    * _make_reward_fn: Return a jittable reward function (REW_FN)
+    * _make_transition_fn: Return a jittable transition function (TRAN_FN)
+    * _make_observation_fn: Return a jittable observation function (OBS_FN)
     Args:
         config (EnvConfig): Environment's configuration.
     """
@@ -36,11 +40,21 @@ class ShinEnv(ABC, gym.Env):
 
     def __init__(self, config: Optional[EnvConfig] = None):
         super().__init__()
+        self.initialize(config)
+
+    def initialize(self, config: Optional[EnvConfig] = None):
         self._state: int = -1
         self.elapsed_steps: int = 0
-        self.key: PRNGKey = None
         config = self.DefaultConfig() if config is None else config
         self._config = config
+        self.key: PRNGKey = None
+        self.seed()
+
+        # set core functions
+        self.transition = self._make_transition_fn()
+        self.reward = self._make_reward_fn()
+        self.observation = self._make_observation_fn()
+        self.init_probs = self._init_probs()
 
         # set mdp
         obs_shape = self.observation_space.shape
@@ -56,26 +70,29 @@ class ShinEnv(ABC, gym.Env):
             init_probs=self.init_probs,
             discount=config.discount,
         )
-        self.seed()
 
         # jit main functions
         # TODO: Config is fixed at instantiation. Better to implement with initialize function like solvers.
         def step(key, state, action):
             states, probs = self.transition(state, action)
-            next_state, new_key = choice_and_step_key(key, states, probs)
+            new_key, key = jax.random.split(key)
+            next_state = jax.random.choice(key, states, p=probs)
             reward = self.reward(state, action)
             next_obs = self.observation(next_state)
             return new_key, next_state, reward, next_obs
 
         def reset(key):
-            init_states, init_probs = self._init_states, self.mdp.init_probs
-            init_state, new_key = choice_and_step_key(key, init_states, init_probs)
+            init_states, init_probs = self._init_states, self.init_probs
+            new_key, key = jax.random.split(key)
+            init_state = jax.random.choice(key, init_states, p=init_probs)
             init_obs = self.observation(init_state)
             return new_key, init_state, init_obs
 
         # TODO: bug fix with jax.jit
-        self._step = step
-        self._reset = reset
+        self._step = jax.jit(step)
+        self._reset = jax.jit(reset)
+
+        self.reset()
 
     @property
     @abstractmethod
@@ -87,32 +104,46 @@ class ShinEnv(ABC, gym.Env):
     def dA(self) -> int:
         pass
 
-    @cached_property
-    @abstractmethod
-    def init_probs(self) -> Array:
-        """(dS Array): Probability of initial states."""
-        pass
-
-    @cached_property
+    @property
     @abstractmethod
     def observation_space(self) -> gym.spaces.Space:
         pass
 
-    @cached_property
+    @property
     @abstractmethod
     def action_space(self) -> gym.spaces.Space:
         pass
 
     @abstractmethod
-    def transition(self, state: int, action: int) -> Tuple[Array, Array]:
+    def _init_probs(self) -> PROBS:
+        """
+        Returns:
+            PROBS: (dS Array) Probabilities of initial states.
+        """
         pass
 
     @abstractmethod
-    def reward(self, state: int, action: int) -> float:
+    def _make_transition_fn(self) -> TRAN_FN:
+        """
+        Returns:
+            TRAN_FN: Jittable transition function.
+        """
         pass
 
     @abstractmethod
-    def observation(self, state: int) -> Array:
+    def _make_reward_fn(self) -> REW_FN:
+        """
+        Returns:
+            REW_FN: Jittable reward function.
+        """
+        pass
+
+    @abstractmethod
+    def _make_observation_fn(self) -> OBS_FN:
+        """
+        Returns:
+            OBS_FN: Jittable observation function.
+        """
         pass
 
     @property
@@ -134,7 +165,7 @@ class ShinEnv(ABC, gym.Env):
         self.action_space.np_random.seed(seed)
         self.observation_space.np_random.seed(seed)
 
-    def step(self, action: int) -> Trans:
+    def step(self, action: int) -> Tuple[OBS, REW, DONE, INFO]:
         """Simulate the environment by one timestep.
 
         Args:
@@ -161,7 +192,7 @@ class ShinEnv(ABC, gym.Env):
         trans = (next_obs, reward, done, info)
         return trans
 
-    def reset(self) -> Array:
+    def reset(self) -> OBS:
         """Resets the state of the environment and returns an initial observation.
 
         Returns:

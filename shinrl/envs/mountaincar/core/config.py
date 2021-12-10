@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 import enum
 from typing import ClassVar, Type
@@ -32,7 +32,7 @@ class MountainCarConfig(EnvConfig):
     obs_mode: OBS_MODE = OBS_MODE.tuple
     act_mode: ACT_MODE = ACT_MODE.discrete
 
-    force_max: float = 2.0
+    force_max: float = 0.002
     goal_pos: float = 0.5
 
     pos_max: float = 0.6

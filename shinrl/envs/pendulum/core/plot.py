@@ -7,7 +7,6 @@ import pandas as pd
 import seaborn as sns
 from chex import Array
 from matplotlib.axes import Axes
-from matplotlib.ticker import StrMethodFormatter
 
 from .calc import *
 from .config import PendulumConfig
@@ -17,8 +16,8 @@ from .config import PendulumConfig
 def disc_th_vel(config: PendulumConfig, th: float, vel: float) -> Tuple[float, float]:
     th_step = (2 * jnp.pi) / (config.theta_res - 1)
     vel_step = (2 * config.vel_max) / (config.theta_res - 1)
-    th_round = (jnp.floor((th + config.theta_max) / th_step)).astype(int)
-    th_vel = (jnp.floor((vel + config.vel_max) / vel_step)).astype(int)
+    th_round = (jnp.floor((th + config.theta_max) / th_step)).astype(jnp.uint32)
+    th_vel = (jnp.floor((vel + config.vel_max) / vel_step)).astype(jnp.uint32)
     return th_round, th_vel
 
 

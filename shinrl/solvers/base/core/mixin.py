@@ -1,6 +1,6 @@
 """Common mixins for evaluation and exploration.
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 

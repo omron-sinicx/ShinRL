@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 
@@ -75,20 +75,20 @@ def out_of_bounds(maze: Array, x: int, y: int):
 def state_to_xy(maze: Array, state: int) -> Array:
     w = maze.shape[0]
     x, y = state % w, state // w
-    return x.astype(int), y.astype(int)
+    return x.astype(jnp.uint32), y.astype(jnp.uint32)
 
 
 @jax.jit
 def xy_to_state(maze: Array, x: int, y: int) -> int:
     w, h = maze.shape[0], maze.shape[1]
     state = x + y * w
-    return state.astype(int)
+    return state.astype(jnp.uint32)
 
 
 @jax.jit
 def reward(maze: Array, state: int, act: int):
     x, y = state_to_xy(maze, state)
-    val = maze[x, y].astype(int)
+    val = maze[x, y].astype(jnp.uint32)
     return TILE_TO_REW[val]
 
 
@@ -106,7 +106,7 @@ def transition(config: MazeConfig, maze: Array, state: int, act: int) -> Array:
     def xy_to_state(xy) -> Array:
         x, y = xy
         state = x + y * w
-        return state.astype(int)
+        return state.astype(jnp.uint32)
 
     cannot_enter = jax.vmap(cannot_enter)
     xy_to_state = jax.vmap(xy_to_state)
@@ -148,7 +148,7 @@ def init_probs(maze: Array) -> Tuple[Array, Array]:
     def xy_to_state(xy) -> Array:
         x, y = xy
         state = x + y * w
-        return state.astype(int)
+        return state.astype(jnp.uint32)
 
     start_xy = jnp.array(jnp.where(maze == TILE.start))
     start_states = xy_to_state(start_xy)

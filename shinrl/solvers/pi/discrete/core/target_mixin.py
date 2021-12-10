@@ -1,6 +1,6 @@
 """MixIns to compute the target value of PI-based algorithms. 
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from abc import ABC, abstractmethod
 

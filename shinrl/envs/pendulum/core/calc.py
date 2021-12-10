@@ -1,6 +1,6 @@
 """
 Author: Toshinori Kitamura
-Affiliation: NAIST
+Affiliation: NAIST & OSX
 """
 from typing import Tuple, Union
 
@@ -27,7 +27,7 @@ def torque_to_act(config: PendulumConfig, torque: float) -> int:
     torque_max, dA = config.torque_max, config.dA
     action = jnp.clip(torque, -torque_max, torque_max - 1e-5)
     torque_step = (2 * torque_max) / dA
-    return jnp.floor((action + torque_max) / torque_step).astype(int)
+    return jnp.floor((action + torque_max) / torque_step).astype(jnp.uint32)
 
 
 @jax.jit
@@ -82,9 +82,9 @@ def th_vel_to_state(config: PendulumConfig, th: float, vel: float) -> float:
     th_max, vel_max = config.theta_max, config.vel_max
     th_step = (2 * jnp.pi) / (th_res - 1)
     vel_step = (2 * vel_max) / (vel_res - 1)
-    th_round = jnp.floor((th + th_max) / th_step).astype(int)
-    th_vel = jnp.floor((vel + vel_max) / vel_step).astype(int)
-    return th_round + th_res * th_vel
+    th_round = jnp.floor((th + th_max) / th_step)
+    th_vel = jnp.floor((vel + vel_max) / vel_step)
+    return (th_round + th_res * th_vel).astype(jnp.uint32)
 
 
 @jax.jit
@@ -108,8 +108,7 @@ def transition(
             * dt
         )
         th = th + vel * dt
-        vel = jnp.array((vel, config.vel_max - 1e-8)).min()
-        vel = jnp.array((vel, -config.vel_max)).max()
+        vel = jnp.clip(vel, -config.vel_max, config.vel_max - 1e-5)
         sign = -1 + (th < -jnp.pi) * 2  # 1 if th < -jnp.pi else -1
         th = th + sign * 2 * jnp.pi
         return (th, vel)
@@ -151,13 +150,14 @@ def observation_image(config: PendulumConfig, state: int) -> Array:
     th, vel = state_to_th_vel(config, state)
     image = jnp.zeros((28, 28), dtype=float)
     length = 9
-    x = (14 + length * jnp.cos(th + jnp.pi / 2)).astype(int)
-    y = (14 - length * jnp.sin(th + jnp.pi / 2)).astype(int)
-    cc, rr, val = srl.line_aa(10, 14, 14, x, y)
+    x = (14 + length * jnp.cos(th + jnp.pi / 2)).astype(jnp.uint32)
+    y = (14 - length * jnp.sin(th + jnp.pi / 2)).astype(jnp.uint32)
+    c = jnp.array(14, dtype=jnp.uint32)
+    cc, rr, val = srl.line_aa(10, c, c, x, y)
     image = image.at[cc, rr].add(val * 0.8)
 
-    vx = (14 + length * jnp.cos((th - vel * 0.15) + jnp.pi / 2)).astype(int)
-    vy = (14 - length * jnp.sin((th - vel * 0.15) + jnp.pi / 2)).astype(int)
-    cc, rr, val = srl.line_aa(10, 14, 14, vx, vy)
+    vx = (14 + length * jnp.cos((th - vel * 0.15) + jnp.pi / 2)).astype(jnp.uint32)
+    vy = (14 - length * jnp.sin((th - vel * 0.15) + jnp.pi / 2)).astype(jnp.uint32)
+    cc, rr, val = srl.line_aa(10, c, c, vx, vy)
     image = image.at[cc, rr].add(val * 0.2)
     return jnp.expand_dims(image, axis=-1)  # 28x28x1
