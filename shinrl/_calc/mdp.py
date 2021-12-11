@@ -9,6 +9,7 @@ from typing import Callable, NamedTuple, Tuple
 import chex
 import jax
 import jax.numpy as jnp
+import numpy.testing as npt
 from chex import Array
 
 from .sparse import SparseMat
@@ -39,14 +40,19 @@ class MDP(NamedTuple):
 
     @staticmethod
     def is_valid_mdp(mdp: MDP) -> bool:
-        assert mdp.init_probs.sum() == 1.0
-        chex.assert_shape(mdp.init_probs, (mdp.dS,))
-        chex.assert_shape(mdp.obs_mat, (mdp.dS, *mdp.obs_shape))
-        chex.assert_shape(mdp.rew_mat, (mdp.dS, mdp.dA))
-        chex.assert_type(
-            [mdp.obs_mat, mdp.rew_mat, mdp.tran_mat.data, mdp.init_probs], float
-        )
-        assert mdp.tran_mat.shape == (mdp.dS * mdp.dA, mdp.dS)
+        dS, dA = mdp.dS, mdp.dA
+        rew_mat, tran_mat, obs_mat = mdp.rew_mat, mdp.tran_mat, mdp.obs_mat
+        npt.assert_almost_equal(mdp.init_probs.sum(), 1.0)
+        chex.assert_shape(mdp.init_probs, (dS,))
+        chex.assert_shape(obs_mat, (dS, *mdp.obs_shape))
+        chex.assert_shape(rew_mat, (dS, dA))
+        chex.assert_type([obs_mat, rew_mat, tran_mat.data, mdp.init_probs], float)
+        assert tran_mat.shape == (dS * dA, dS)
+        row, col = tran_mat.row, tran_mat.col
+        assert jnp.all(0 <= row), "row has invalid indexes."
+        assert jnp.all(row < dS * dA), "row has invalid indexes."
+        assert jnp.all(0 <= col), "col has invalid indexes."
+        assert jnp.all(col < dS), "col has invalid indexes."
         assert 0.0 < mdp.discount < 1.0
         return True
 

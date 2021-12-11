@@ -75,9 +75,9 @@ class CartPole(ShinEnv):
                 idxs.append(
                     calc.x_th_to_state(self.config, ini_x, ini_x_dot, i_th, i_th_dot)
                 )
-        idxs = np.unique(np.array(idxs))
+        idxs = np.unique(np.array(idxs, dtype=int))
         probs = np.ones_like(idxs, dtype=float) / len(idxs)
-        init_probs = np.zeros(self.dS)
+        init_probs = np.zeros(self.dS, dtype=float)
         np.put(init_probs, idxs, probs)
         return jnp.array(init_probs)
 

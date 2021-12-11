@@ -14,6 +14,11 @@ from .config import PendulumConfig
 
 
 @jax.jit
+def normalize_angle(th: float) -> float:
+    return (th + jnp.pi) % (2 * jnp.pi) - jnp.pi
+
+
+@jax.jit
 def torque_to_act(config: PendulumConfig, torque: float) -> int:
     """Convert torque to a discrete action.
 
@@ -25,9 +30,10 @@ def torque_to_act(config: PendulumConfig, torque: float) -> int:
         A discretized action id.
     """
     torque_max, dA = config.torque_max, config.dA
-    action = jnp.clip(torque, -torque_max, torque_max - 1e-5)
+    torque = jnp.clip(torque, -torque_max, torque_max)
     torque_step = (2 * torque_max) / dA
-    return jnp.floor((action + torque_max) / torque_step).astype(jnp.uint32)
+    act = jnp.floor((torque + torque_max) / torque_step + 1e-5).astype(jnp.uint32)
+    return jnp.clip(act, 0, dA - 1)
 
 
 @jax.jit
@@ -43,7 +49,8 @@ def act_to_torque(config: PendulumConfig, act: int) -> float:
     """
     torque_max, dA = config.torque_max, config.dA
     torque_step = (2 * torque_max) / dA
-    return act * torque_step - torque_max
+    torque = act * torque_step - torque_max
+    return jnp.clip(torque, -torque_max, torque_max)
 
 
 @jax.jit
@@ -58,11 +65,13 @@ def state_to_th_vel(config: PendulumConfig, state: int) -> Tuple[float, float]:
         theta and vel_theta values.
     """
     th_res, vel_res = config.theta_res, config.vel_res
-    th_max, vel_max = config.theta_max, config.vel_max
+    vel_max = config.vel_max
     th_idx = state % th_res
     vel_idx = state // vel_res
-    th = -th_max + (2 * jnp.pi) / (th_res - 1) * th_idx
+    th = -jnp.pi + (2 * jnp.pi) / (th_res - 1) * th_idx
+    th = normalize_angle(th)
     vel = -vel_max + (2 * vel_max) / (vel_res - 1) * vel_idx
+    vel = jnp.clip(vel, -vel_max, vel_max)
     return th, vel
 
 
@@ -79,19 +88,20 @@ def th_vel_to_state(config: PendulumConfig, th: float, vel: float) -> float:
         state id (int)
     """
     th_res, vel_res = config.theta_res, config.vel_res
-    th_max, vel_max = config.theta_max, config.vel_max
+    vel_max = config.vel_max
     th_step = (2 * jnp.pi) / (th_res - 1)
     vel_step = (2 * vel_max) / (vel_res - 1)
-    th_round = jnp.floor((th + th_max) / th_step)
-    th_vel = jnp.floor((vel + vel_max) / vel_step)
-    return (th_round + th_res * th_vel).astype(jnp.uint32)
+    th_idx = jnp.floor((th + jnp.pi) / th_step + 1e-5)
+    vel_idx = jnp.floor((vel + vel_max) / vel_step + 1e-5)
+    state = (th_idx + th_res * vel_idx).astype(jnp.uint32)
+    return jnp.clip(state, 0, th_res * vel_res - 1)
 
 
 @jax.jit
 def transition(
     config: PendulumConfig, state: int, action: Union[int, float]
 ) -> Tuple[Array, Array]:
-    g, m, l, dt = config.gravity, config.mass, config.length, 0.05
+    g, m, l, dt = config.gravity, config.mass, config.length, config.dt
     is_continuous = config.act_mode == config.ACT_MODE.continuous
     torque = jax.lax.cond(
         is_continuous,
@@ -107,10 +117,8 @@ def transition(
             + (-3 * g / (2 * l) * jnp.sin(th + jnp.pi) + 3.0 / (m * l ** 2) * torque)
             * dt
         )
-        th = th + vel * dt
-        vel = jnp.clip(vel, -config.vel_max, config.vel_max - 1e-5)
-        sign = -1 + (th < -jnp.pi) * 2  # 1 if th < -jnp.pi else -1
-        th = th + sign * 2 * jnp.pi
+        vel = jnp.clip(vel, -config.vel_max, config.vel_max)
+        th = normalize_angle(th + vel * dt)
         return (th, vel)
 
     th, vel = state_to_th_vel(config, state)

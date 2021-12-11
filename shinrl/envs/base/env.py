@@ -70,6 +70,7 @@ class ShinEnv(ABC, gym.Env):
             init_probs=self.init_probs,
             discount=config.discount,
         )
+        self.mdp.is_valid_mdp(self.mdp)
 
         # jit main functions
         # TODO: Config is fixed at instantiation. Better to implement with initialize function like solvers.
@@ -181,6 +182,8 @@ class ShinEnv(ABC, gym.Env):
         state = self._state
         new_key, next_state, reward, next_obs = self._step(self.key, state, action)
         self.key, self._state = new_key, next_state.item()
+        assert 0 <= self._state, "Invalid state. Check the transition function."
+        assert self._state < self.dS, "Invalid state. Check the transition function"
         done = False
         self.elapsed_steps += 1
         info = {"state": self._state}

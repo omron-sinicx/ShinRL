@@ -6,7 +6,6 @@ import enum
 from typing import ClassVar, Type
 
 import chex
-import jax.numpy as jnp
 
 from shinrl import EnvConfig
 
@@ -27,7 +26,6 @@ class PendulumConfig(EnvConfig):
 
     Args:
         torque_max (float): Maximum torque.
-        theta_max (float): Maximum angle.
         theta_res (int): Resolution of discretizing angle.
         vel_max (float): Maximum velocity.
         vel_res (int): Resolution of discretizing velocity.
@@ -43,8 +41,8 @@ class PendulumConfig(EnvConfig):
     ACT_MODE: ClassVar[Type[ACT_MODE]] = ACT_MODE
 
     # fields
-    torque_max: float = 2.0
-    theta_max: float = jnp.pi
+    dt: float = 0.06
+    torque_max: float = 3.0
     theta_res: int = 32
     vel_max: float = 8.0
     vel_res: int = 32

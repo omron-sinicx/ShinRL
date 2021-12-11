@@ -25,9 +25,10 @@ def force_to_act(config: MountainCarConfig, force: float) -> int:
         A discretized action id.
     """
     force_max, dA = config.force_max, config.dA
-    force = jnp.clip(force, a_min=-force_max, a_max=force_max - 1e-5)
+    force = jnp.clip(force, a_min=-force_max, a_max=force_max)
     force_step = (2 * force_max) / dA
-    return jnp.floor((force + force_max) / force_step).astype(jnp.uint32)
+    act = jnp.floor((force + force_max) / force_step + 1e-5).astype(jnp.uint32)
+    return jnp.clip(act, 0, dA - 1)
 
 
 @jax.jit
@@ -43,7 +44,8 @@ def act_to_force(config: MountainCarConfig, act: int) -> float:
     """
     force_max, dA = config.force_max, config.dA
     force_step = (2 * force_max) / dA
-    return act * force_step - force_max
+    force = act * force_step - force_max
+    return jnp.clip(force, -force_max, force_max)
 
 
 @jax.jit
@@ -63,7 +65,9 @@ def state_to_pos_vel(config: MountainCarConfig, state: int) -> Tuple[float, floa
     pos_idx = state % pos_res
     vel_idx = state // vel_res
     pos = pos_min + (pos_max - pos_min) / (pos_res - 1) * pos_idx
+    pos = jnp.clip(pos, pos_min, pos_max)
     vel = vel_min + (vel_max - vel_min) / (vel_res - 1) * vel_idx
+    vel = jnp.clip(vel, vel_min, vel_max)
     return pos, vel
 
 
@@ -84,9 +88,10 @@ def pos_vel_to_state(config: MountainCarConfig, pos: float, vel: float) -> float
     pos_min, vel_min = config.pos_min, config.vel_min
     pos_step = (pos_max - pos_min) / (pos_res - 1)
     vel_step = (vel_max - vel_min) / (vel_res - 1)
-    pos_round = jnp.floor((pos - pos_min) / pos_step).astype(jnp.uint32)
-    vel_round = jnp.floor((vel - vel_min) / vel_step).astype(jnp.uint32)
-    return pos_round + pos_res * vel_round
+    pos_idx = jnp.floor((pos - pos_min) / pos_step + 1e-5)
+    vel_idx = jnp.floor((vel - vel_min) / vel_step + 1e-5)
+    state = (pos_idx + pos_res * vel_idx).astype(jnp.uint32)
+    return jnp.clip(state, 0, pos_res * vel_res - 1)
 
 
 @jax.jit

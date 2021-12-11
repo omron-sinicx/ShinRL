@@ -21,7 +21,7 @@ def test_torque_to_act(setUp):
     # jit testing
     config10 = Pendulum.DefaultConfig(dA=50)
     act = torque_to_act(config10, -0.4)
-    assert act == 20
+    assert act == 21
 
 
 def test_act_to_torque(setUp):
@@ -29,7 +29,7 @@ def test_act_to_torque(setUp):
 
     config = setUp
     act = act_to_torque(config, 2)
-    npt.assert_allclose(act, -0.4)
+    npt.assert_allclose(act, -0.6, rtol=1e-6)
 
 
 def test_state_to_th_vel(setUp):

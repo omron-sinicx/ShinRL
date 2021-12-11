@@ -23,9 +23,10 @@ def force_to_act(config: CartPoleConfig, force: float) -> int:
         A discretized action id.
     """
     force_max, dA = config.force_max, config.dA
-    force = jnp.clip(force, a_min=-force_max, a_max=force_max - 1e-5)
+    force = jnp.clip(force, a_min=-force_max, a_max=force_max)
     force_step = (2 * force_max) / dA
-    return jnp.floor((force + force_max) / force_step).astype(jnp.uint32)
+    act = jnp.floor((force + force_max) / force_step + 1e-5)
+    return jnp.clip(act, 0, dA - 1).astype(jnp.uint32)
 
 
 @jax.jit
@@ -41,7 +42,8 @@ def act_to_force(config: CartPoleConfig, act: int) -> float:
     """
     force_max, dA = config.force_max, config.dA
     force_step = (2 * force_max) / dA
-    return act * force_step - force_max
+    force = act * force_step - force_max
+    return jnp.clip(force, -force_max, force_max)
 
 
 @jax.jit
@@ -73,9 +75,13 @@ def state_to_x_th(config: CartPoleConfig, state: int) -> Tuple[float, float]:
     th_dot_idx = (state - th_idx) / th_res
 
     x = -x_max + x_step * x_idx
+    x = jnp.clip(x, -x_max, x_max)
     x_dot = -x_dot_max + x_dot_step * x_dot_idx
+    x_dot = jnp.clip(x_dot, -x_dot_max, x_dot_max)
     th = -th_max + th_step * th_idx
+    th = jnp.clip(th, -th_max, th_max)
     th_dot = -th_dot_max + th_dot_step * th_dot_idx
+    th_dot = jnp.clip(th_dot, -th_dot_max, th_dot_max)
     return x, x_dot, th, th_dot
 
 
@@ -101,14 +107,13 @@ def x_th_to_state(
     th_step = 2 * th_max / (th_res - 1)
     th_dot_step = 2 * th_dot_max / (th_dot_res - 1)
 
-    x_round = jnp.floor((x + x_max) / x_step)
-    x_dot_round = jnp.floor((x_dot + x_dot_max) / x_dot_step)
-    th_round = jnp.floor((th + th_max) / th_step)
-    th_dot_round = jnp.floor((th_dot + th_dot_max) / th_dot_step)
-    state_id = x_round + x_res * (
-        x_dot_round + x_dot_res * (th_round + th_res * th_dot_round)
-    )
-    return state_id.astype(jnp.uint32)
+    x_idx = jnp.floor((x + x_max) / x_step + 1e-5)
+    x_dot_idx = jnp.floor((x_dot + x_dot_max) / x_dot_step + 1e-5)
+    th_idx = jnp.floor((th + th_max) / th_step + 1e-5)
+    th_dot_idx = jnp.floor((th_dot + th_dot_max) / th_dot_step + 1e-5)
+    state = x_idx + x_res * (x_dot_idx + x_dot_res * (th_idx + th_res * th_dot_idx))
+    state = jnp.clip(state, 0, x_res * x_dot_res * th_res * th_dot_res - 1)
+    return state.astype(jnp.uint32)
 
 
 @jax.jit

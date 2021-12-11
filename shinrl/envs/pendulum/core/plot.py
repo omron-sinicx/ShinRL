@@ -14,11 +14,12 @@ from .config import PendulumConfig
 
 @jax.jit
 def disc_th_vel(config: PendulumConfig, th: float, vel: float) -> Tuple[float, float]:
+    th = normalize_angle(th)
     th_step = (2 * jnp.pi) / (config.theta_res - 1)
     vel_step = (2 * config.vel_max) / (config.theta_res - 1)
-    th_round = (jnp.floor((th + config.theta_max) / th_step)).astype(jnp.uint32)
-    th_vel = (jnp.floor((vel + config.vel_max) / vel_step)).astype(jnp.uint32)
-    return th_round, th_vel
+    th_round = jnp.floor((th + jnp.pi) / th_step + 1e-5).astype(jnp.uint32)
+    vel_round = jnp.floor((vel + config.vel_max) / vel_step + 1e-5).astype(jnp.uint32)
+    return th_round, vel_round
 
 
 @functools.partial(jax.vmap, in_axes=(None, 1, 1), out_axes=0)
@@ -27,7 +28,8 @@ def undisc_th_vel(
 ) -> Tuple[float, float]:
     th_step = (2 * jnp.pi) / (config.theta_res - 1)
     vel_step = (2 * config.vel_max) / (config.theta_res - 1)
-    th = th_round * th_step - config.theta_max
+    th = th_round * th_step - jnp.pi
+    th = normalize_angle(th)
     vel = th_vel * vel_step - config.vel_max
     return th, vel
 

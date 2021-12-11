@@ -19,9 +19,11 @@ def disc_pos_vel(
 ) -> Tuple[float, float]:
     pos_step = (config.pos_max - config.pos_min) / (config.pos_res - 1)
     vel_step = (config.vel_max - config.vel_min) / (config.pos_res - 1)
-    pos_round = (jnp.floor((pos - config.pos_min) / pos_step)).astype(jnp.uint32)
-    pos_vel = (jnp.floor((vel - config.vel_min) / vel_step)).astype(jnp.uint32)
-    return pos_round, pos_vel
+    pos_idx = jnp.floor((pos - config.pos_min) / pos_step + 1e-5).astype(jnp.uint32)
+    pos_idx = jnp.clip(pos_idx, 0, config.pos_res - 1)
+    vel_idx = jnp.floor((vel - config.vel_min) / vel_step + 1e-5).astype(jnp.uint32)
+    vel_idx = jnp.clip(vel_idx, 0, config.vel_res - 1)
+    return pos_idx, vel_idx
 
 
 @functools.partial(jax.vmap, in_axes=(None, 1, 1), out_axes=0)
@@ -31,7 +33,9 @@ def undisc_pos_vel(
     pos_step = (config.pos_max - config.pos_min) / (config.pos_res - 1)
     vel_step = (config.vel_max - config.vel_min) / (config.pos_res - 1)
     pos = pos_round * pos_step + config.pos_min
+    pos = jnp.clip(pos, config.pos_min, config.pos_max)
     vel = pos_vel * vel_step + config.vel_min
+    vel = jnp.clip(vel, config.vel_min, config.vel_max)
     return pos, vel
 
 
