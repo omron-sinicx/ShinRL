@@ -147,7 +147,7 @@ docker-compose up
     booktitle = {Proceedings of the NeurIPS Deep RL Workshop},
 }
 
-# Arxiv version
+# Arxiv version (at commit 2d3da)
 @article{toshinori2021shinrlArxiv,
     author = {Kitamura, Toshinori and Yonetani, Ryo},
     title = {ShinRL: A Library for Evaluating RL Algorithms from Theoretical and Practical Perspectives},
