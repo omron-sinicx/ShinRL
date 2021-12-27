@@ -2,13 +2,10 @@
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """
-from __future__ import annotations
-
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Optional
 
 import gym
-import haiku as hk
 import jax
 import jax.numpy as jnp
 import optax

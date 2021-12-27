@@ -9,7 +9,7 @@
 
 Try the following tutorial at: [experiments/ShinEnvTutorial.ipynb](../../experiments/ShinEnvTutorial.ipynb).
 
-##  1. <a name='CreateCustomShinEnv'></a>Create custom ShinEnv
+##  1. <a name='CreateCustomShinEnv'></a>Create Custom ShinEnv
 
 
 This tutorial demonstrates how to create a custom environment.

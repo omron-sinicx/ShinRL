@@ -5,77 +5,86 @@ Affiliation: NAIST & OSX
 from abc import ABC, abstractmethod
 
 import distrax
+import jax
 from chex import Array
-from distrax import Categorical
 
 import shinrl as srl
 
 
 class TargetMixIn(ABC):
     @abstractmethod
-    def target_pol_dist(self, q: Array) -> Categorical:
+    def target_log_pol(self, q: Array) -> Array:
         pass
 
     @abstractmethod
-    def target_q_tabular_dp(self, data: srl.DataDict, pol_dist: Categorical) -> Array:
+    def target_q_tabular_dp(self, data: srl.DataDict) -> Array:
         pass
 
     @abstractmethod
-    def target_q_tabular_rl(
-        self, data: srl.DataDict, next_pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_tabular_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
         pass
 
     @abstractmethod
-    def target_q_deep_dp(self, data: srl.DataDict, next_pol_dist: Categorical) -> Array:
+    def target_q_deep_dp(self, data: srl.DataDict) -> Array:
         pass
 
     @abstractmethod
-    def target_q_deep_rl(
-        self, data: srl.DataDict, pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_deep_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
         pass
 
 
 class QTargetMixIn(TargetMixIn):
-    def target_pol_dist(self, q: Array) -> Categorical:
-        return distrax.Greedy(q)
+    def initialize(self, env, config=None) -> None:
+        super().initialize(env, config)
+        self.pol_loss_fn = srl.cross_entropy_loss
 
-    def target_q_tabular_dp(self, data: srl.DataDict, pol_dist: Categorical) -> Array:
+    def target_log_pol(self, q: Array) -> Array:
+        return distrax.Greedy(q).logits
+
+    def target_q_tabular_dp(self, data: srl.DataDict) -> Array:
+        q = data["Q"]
+        policy = jax.nn.softmax(data["LogPolicy"])
         return srl.expected_backup_dp(
-            data["Q"],
-            pol_dist.probs,
+            q,
+            policy,
             self.env.mdp.rew_mat,
             self.env.mdp.tran_mat,
             self.config.discount,
         )
 
-    def target_q_tabular_rl(
-        self, data: srl.DataDict, next_pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_tabular_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
+        next_state = samples.next_state.squeeze(axis=1)
+        next_q = data["Q"][next_state]  # BxA
+        next_policy = jax.nn.softmax(data["LogPolicy"][next_state])  # BxA
         return srl.expected_backup_rl(
-            data["Q"][samples.next_state.squeeze(axis=1)],  # BxA
-            next_pol_dist.probs[samples.next_state.squeeze(axis=1)],  # BxA
+            next_q,
+            next_policy,
             samples.rew,
             samples.done,
             self.config.discount,
         )
 
-    def target_q_deep_dp(self, data: srl.DataDict, pol_dist: Categorical) -> Array:
+    def target_q_deep_dp(self, data: srl.DataDict) -> Array:
+        obs = self.env.mdp.obs_mat
+        q = self.q_net.apply(data["QNetTargParams"], obs)
+        log_policy = self.log_pol_net.apply(data["LogPolNetParams"], obs)
+        policy = jax.nn.softmax(log_policy)
         return srl.expected_backup_dp(
-            self.q_net.apply(data["QNetTargParams"], self.env.mdp.obs_mat),
-            pol_dist.probs,
+            q,
+            policy,
             self.env.mdp.rew_mat,
             self.env.mdp.tran_mat,
             self.config.discount,
         )
 
-    def target_q_deep_rl(
-        self, data: srl.DataDict, next_pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_deep_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
+        next_obs = samples.next_obs
+        next_q = self.q_net.apply(data["QNetTargParams"], next_obs)
+        next_log_pol = self.log_pol_net.apply(data["LogPolNetParams"], next_obs)
+        next_pol = jax.nn.softmax(next_log_pol, axis=-1)
         return srl.expected_backup_rl(
-            self.q_net.apply(data["QNetTargParams"], samples.next_obs),
-            next_pol_dist.probs,
+            next_q,
+            next_pol,
             samples.rew,
             samples.done,
             self.config.discount,
@@ -86,51 +95,65 @@ class QTargetMixIn(TargetMixIn):
 
 
 class SoftQTargetMixIn(TargetMixIn):
-    def target_pol_dist(self, q: Array) -> Categorical:
-        return distrax.Softmax(q, temperature=self.config.er_coef)
+    def initialize(self, env, config=None) -> None:
+        super().initialize(env, config)
+        self.pol_loss_fn = srl.kl_loss
 
-    def target_q_tabular_dp(self, data: srl.DataDict, pol_dist: Categorical) -> Array:
+    def target_log_pol(self, q: Array) -> Array:
+        return q / self.config.er_coef
+
+    def target_q_tabular_dp(self, data: srl.DataDict) -> Array:
+        q = data["Q"]
+        log_policy = data["LogPolicy"]
+        policy = jax.nn.softmax(log_policy)
         return srl.soft_expected_backup_dp(
-            data["Q"],
-            pol_dist.probs,
-            pol_dist.logits,
+            q,
+            policy,
+            log_policy,
             self.env.mdp.rew_mat,
             self.env.mdp.tran_mat,
             self.config.discount,
             self.config.er_coef,
         )
 
-    def target_q_tabular_rl(
-        self, data: srl.DataDict, pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_tabular_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
+        next_q = data["Q"][samples.next_state.squeeze(axis=1)]  # BxA
+        next_log_pol = data["LogPolicy"][samples.next_state.squeeze(axis=1)]  # BxA
+        next_pol = jax.nn.softmax(next_log_pol, axis=-1)
         return srl.soft_expected_backup_rl(
-            data["Q"][samples.next_state.squeeze(axis=1)],  # BxA
-            pol_dist.probs[samples.next_state.squeeze(axis=1)],  # BxA
-            pol_dist.logits[samples.next_state.squeeze(axis=1)],  # BxA
+            next_q,
+            next_pol,
+            next_log_pol,
             samples.rew,
             samples.done,
             self.config.discount,
             self.config.er_coef,
         )
 
-    def target_q_deep_dp(self, data: srl.DataDict, pol_dist: Categorical) -> Array:
+    def target_q_deep_dp(self, data: srl.DataDict) -> Array:
+        obs = self.env.mdp.obs_mat
+        q = self.q_net.apply(data["QNetTargParams"], obs)
+        log_policy = self.log_pol_net.apply(data["LogPolNetParams"], obs)
+        policy = jax.nn.softmax(log_policy)
         return srl.soft_expected_backup_dp(
-            self.q_net.apply(data["QNetTargParams"], self.env.mdp.obs_mat),
-            pol_dist.probs,
-            pol_dist.logits,
+            q,
+            policy,
+            log_policy,
             self.env.mdp.rew_mat,
             self.env.mdp.tran_mat,
             self.config.discount,
             self.config.er_coef,
         )
 
-    def target_q_deep_rl(
-        self, data: srl.DataDict, pol_dist: Categorical, samples: srl.Sample
-    ) -> Array:
+    def target_q_deep_rl(self, data: srl.DataDict, samples: srl.Sample) -> Array:
+        next_obs = samples.next_obs
+        next_q = self.q_net.apply(data["QNetTargParams"], next_obs)
+        next_log_pol = self.log_pol_net.apply(data["LogPolNetParams"], next_obs)
+        next_pol = jax.nn.softmax(next_log_pol, axis=-1)
         return srl.soft_expected_backup_rl(
-            self.q_net.apply(data["QNetTargParams"], samples.next_obs),
-            pol_dist.probs,
-            pol_dist.logits,
+            next_q,
+            next_pol,
+            next_log_pol,
             samples.rew,
             samples.done,
             self.config.discount,

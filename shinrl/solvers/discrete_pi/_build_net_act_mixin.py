@@ -2,28 +2,28 @@
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """
-from typing import Optional
+from typing import Callable, Optional
 
 import gym
 
 import shinrl as srl
 
-from .config import ViConfig
+from .config import PiConfig
 
 
-class NetActMixIn:
-    def initialize(self, env: gym.Env, config: Optional[ViConfig] = None) -> None:
+class BuildNetActMixIn:
+    def initialize(self, env: gym.Env, config: Optional[PiConfig] = None) -> None:
         super().initialize(env, config)
         self.explore_act = self._build_act_fn(self.config.explore.name)
         self.eval_act = self._build_act_fn(self.config.exploit.name)
 
-    def _build_act_fn(self, flag) -> srl.ACT_FN:
-        net = self.q_net
+    def _build_act_fn(self, flag) -> Callable[[], srl.ACT_FN]:
+        net = self.log_pol_net
         if flag == "oracle" or flag == "greedy":
             net_act = srl.build_discrete_greedy_net_act(net)
 
             def act_fn(key, obs):
-                return net_act(key, obs, self.data["QNetParams"])
+                return net_act(key, obs, self.data["LogPolNetParams"])
 
         elif flag == "eps_greedy":
             net_act = srl.build_eps_greedy_net_act(net)
@@ -35,15 +35,15 @@ class NetActMixIn:
                     self.config.eps_warmup,
                     self.config.eps_end,
                 )
-                params = self.data["QNetParams"]
+                params = self.data["LogPolNetParams"]
                 return net_act(key, obs, params, n_step, decay, warmup, end)
 
-        elif flag == "softmax":
+        elif flag == "identity":
             net_act = srl.build_softmax_net_act(net)
 
             def act_fn(key, obs):
-                params = self.data["QNetParams"]
-                return net_act(key, obs, params, self.config.softmax_tmp)
+                params = self.data["LogPolNetParams"]
+                return net_act(key, obs, params, 1)
 
         else:
             raise NotImplementedError

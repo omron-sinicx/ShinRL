@@ -10,10 +10,10 @@ import gym
 
 import shinrl as srl
 
+from ._build_calc_params_mixin import BuildCalcParamsDpMixIn, BuildCalcParamsRlMixIn
+from ._build_net_act_mixin import BuildNetActMixIn
 from ._build_net_mixin import BuildNetMixIn
 from ._build_table_mixin import BuildTableMixIn
-from ._calc_params_mixin import CalcParamsDpMixIn, CalcParamsRlMixIn
-from ._net_act_mixin import NetActMixIn
 from ._target_mixin import QTargetMixIn, SoftQTargetMixIn
 from .config import PiConfig
 from .step_mixin import (
@@ -46,7 +46,7 @@ class DiscretePiSolver(srl.BaseSolver):
             mixin_list += [srl.BaseGymEvalMixIn, srl.BaseGymExploreMixIn]
 
         if approx == APPROX.nn:
-            mixin_list += [BuildNetMixIn, NetActMixIn]
+            mixin_list += [BuildNetMixIn, BuildNetActMixIn]
 
         if is_shin_env:
             mixin_list += [BuildTableMixIn]
@@ -55,20 +55,18 @@ class DiscretePiSolver(srl.BaseSolver):
         is_q_learning = config.er_coef == 0.0
         if is_q_learning:  # Vanilla Q target
             mixin_list += [QTargetMixIn]
-            config.pol_loss_fn = config.LOSS.cross_entropy_loss
         else:  # Soft Q target
             mixin_list += [SoftQTargetMixIn]
-            config.pol_loss_fn = config.LOSS.kl_loss
 
         # Branch to tabular DP, deep DP, tabular RL, or deep RL
         if approx == APPROX.tabular and explore == EXPLORE.oracle:
             mixin_list += [TabularDpStepMixIn]
         elif approx == APPROX.nn and explore == EXPLORE.oracle:
-            mixin_list += [DeepDpStepMixIn, CalcParamsDpMixIn]
+            mixin_list += [DeepDpStepMixIn, BuildCalcParamsDpMixIn]
         elif config.approx == APPROX.tabular and explore != EXPLORE.oracle:
             mixin_list += [TabularRlStepMixIn]
         elif config.approx == APPROX.nn and config.explore != EXPLORE.oracle:
-            mixin_list += [DeepRlStepMixIn, CalcParamsRlMixIn]
+            mixin_list += [DeepRlStepMixIn, BuildCalcParamsRlMixIn]
         else:
             raise NotImplementedError
 

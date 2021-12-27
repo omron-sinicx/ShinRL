@@ -2,8 +2,6 @@
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """
-from __future__ import annotations
-
 from copy import deepcopy
 from typing import Optional
 
@@ -21,18 +19,18 @@ class BuildNetMixIn:
     def initialize(self, env: gym.Env, config: Optional[PiConfig] = None) -> None:
         super().initialize(env, config)
 
-        q_net, q_opt, pol_net, pol_opt = self._build_net()
+        q_net, q_opt, log_pol_net, log_pol_opt = self._build_net()
         self.q_net = q_net
         self.q_opt = q_opt
-        self.pol_net = pol_net
-        self.pol_opt = pol_opt
+        self.log_pol_net = log_pol_net
+        self.log_pol_opt = log_pol_opt
 
-        q_param, q_state, pol_param, pol_state = self._build_net_data()
+        q_param, q_state, log_pol_param, log_pol_state = self._build_net_data()
         self.data["QNetParams"] = q_param
         self.data["QNetTargParams"] = deepcopy(q_param)
         self.data["QOptState"] = q_state
-        self.data["PolNetParams"] = pol_param
-        self.data["PolOptState"] = pol_state
+        self.data["LogPolNetParams"] = log_pol_param
+        self.data["LogPolOptState"] = log_pol_state
 
     def _build_net(self):
         n_out = self.env.action_space.n
@@ -46,9 +44,9 @@ class BuildNetMixIn:
 
         q_net = net
         q_opt = optimizer(learning_rate=self.config.q_lr)
-        pol_net = net
-        pol_opt = optimizer(learning_rate=self.config.pol_lr)
-        return q_net, q_opt, pol_net, pol_opt
+        log_pol_net = net
+        log_pol_opt = optimizer(learning_rate=self.config.pol_lr)
+        return q_net, q_opt, log_pol_net, log_pol_opt
 
     def _build_net_data(self):
         self.key, key = jax.random.split(self.key)
@@ -58,7 +56,7 @@ class BuildNetMixIn:
         q_state = self.q_opt.init(q_param)
 
         self.key, key = jax.random.split(self.key)
-        pol_param = self.pol_net.init(key, sample_init)
-        pol_state = self.pol_opt.init(pol_param)
+        log_pol_param = self.log_pol_net.init(key, sample_init)
+        log_pol_state = self.log_pol_opt.init(log_pol_param)
 
-        return q_param, q_state, pol_param, pol_state
+        return q_param, q_state, log_pol_param, log_pol_state

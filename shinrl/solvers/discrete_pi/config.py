@@ -18,7 +18,7 @@ from shinrl import SolverConfig
 class EXPLORE(enum.IntEnum):
     oracle = auto()
     eps_greedy = auto()
-    softmax = auto()
+    identity = auto()
 
 
 class EXPLOIT(enum.IntEnum):
@@ -62,7 +62,6 @@ class PiConfig(SolverConfig):
         eps_end (float): Epsilon value at the end of the eps-greedy exploration.
         eps_warmup (int): Epsilon value is set 1.0 until 'eps_warmup'.
         eps_decay (int): Interval to decrease the epsilon value.
-        softmax_tmp (float): temperature parameter for softmax.
 
         pol_lr (float): Learning rate of the pol.
         q_lr (float): Learning rate of the q.
@@ -77,7 +76,6 @@ class PiConfig(SolverConfig):
         activation (str): Activation function.
         optimizer (str): Optimizer for nn.
         q_loss_fn (str): Loss function for q.
-        pol_loss_fn (str): Loss function for policy. Automatically changed in make_mixin.
     """
 
     # class variables
@@ -104,7 +102,6 @@ class PiConfig(SolverConfig):
     eps_end: float = 0.1
     eps_warmup: int = 0
     eps_decay: int = 10 ** 5
-    softmax_tmp: float = 1.0
 
     # network configs
     hidden: int = 128
@@ -113,4 +110,3 @@ class PiConfig(SolverConfig):
     activation: ACTIVATION = ACTIVATION.relu
     optimizer: OPTIMIZER = OPTIMIZER.adam
     q_loss_fn: LOSS = LOSS.l2_loss
-    pol_loss_fn: LOSS = LOSS.cross_entropy_loss  # Automatically changed in make_mixin.

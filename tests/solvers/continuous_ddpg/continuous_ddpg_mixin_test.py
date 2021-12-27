@@ -35,14 +35,14 @@ def test_build_net_mixin():
 
 
 def test_net_act_mixin():
+    from shinrl.solvers.continuous_ddpg._build_net_act_mixin import BuildNetActMixIn
     from shinrl.solvers.continuous_ddpg._build_net_mixin import BuildNetMixIn
-    from shinrl.solvers.continuous_ddpg._net_act_mixin import NetActMixIn
     from shinrl.solvers.continuous_ddpg.config import DdpgConfig
 
     class MockSolver(srl.BaseSolver):
         @staticmethod
         def make_mixins():
-            return [NetActMixIn, BuildNetMixIn, MockSolver]
+            return [BuildNetActMixIn, BuildNetMixIn, MockSolver]
 
         def step(self):
             pass

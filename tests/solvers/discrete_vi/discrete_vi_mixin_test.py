@@ -77,14 +77,14 @@ def test_target_mixin():
 
 
 def test_net_act_mixin():
+    from shinrl.solvers.discrete_vi._build_net_act_mixin import BuildNetActMixIn
     from shinrl.solvers.discrete_vi._build_net_mixin import BuildNetMixIn
-    from shinrl.solvers.discrete_vi._net_act_mixin import NetActMixIn
     from shinrl.solvers.discrete_vi.config import ViConfig
 
     class MockSolver(srl.BaseSolver):
         @staticmethod
         def make_mixins():
-            return [NetActMixIn, BuildNetMixIn, MockSolver]
+            return [BuildNetActMixIn, BuildNetMixIn, MockSolver]
 
         def step(self):
             pass

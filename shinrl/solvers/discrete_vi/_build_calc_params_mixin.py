@@ -2,8 +2,6 @@
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """
-from __future__ import annotations
-
 from typing import Optional
 
 import chex
@@ -19,7 +17,7 @@ import shinrl as srl
 from .config import ViConfig
 
 
-class CalcParamsDpMixIn:
+class BuildCalcParamsDpMixIn:
     def initialize(self, env: gym.Env, config: Optional[ViConfig] = None) -> None:
         super().initialize(env, config)
         self.calc_params = self._build_calc_params()
@@ -32,7 +30,7 @@ class CalcParamsDpMixIn:
             chex.assert_equal_shape((pred, q_targ))
             return loss_fn(pred, q_targ)
 
-        def calc_params(data: srl.ParamsDict) -> Array:
+        def calc_params(data: srl.DataDict) -> Array:
             q_targ = self.target_deep_dp(data)
             q_prm, opt_state = data["QNetParams"], data["QOptState"]
             mdp = self.env.mdp
@@ -44,7 +42,7 @@ class CalcParamsDpMixIn:
         return jax.jit(calc_params)
 
 
-class CalcParamsRlMixIn:
+class BuildCalcParamsRlMixIn:
     def initialize(self, env: gym.Env, config: Optional[ViConfig] = None) -> None:
         super().initialize(env, config)
         self.calc_params = self._build_calc_params()
@@ -58,7 +56,7 @@ class CalcParamsRlMixIn:
             chex.assert_equal_shape((pred, targ))
             return loss_fn(pred, targ)
 
-        def calc_params(data: srl.ParamsDict, samples: srl.Sample):
+        def calc_params(data: srl.DataDict, samples: srl.Sample):
             q_targ = self.target_deep_rl(data, samples)
             act, q_prm, opt_state = samples.act, data["QNetParams"], data["QOptState"]
             loss, grad = jax.value_and_grad(calc_loss)(q_prm, q_targ, samples.obs, act)

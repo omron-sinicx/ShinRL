@@ -24,7 +24,7 @@ def test_build_table_mixin():
     mixins = MockSolver.make_mixins()
     solver = MockSolver.factory(env, config, mixins)
     chex.assert_rank(solver.data["Q"], 2)
-    chex.assert_rank(solver.data["Logits"], 2)
+    chex.assert_rank(solver.data["LogPolicy"], 2)
     chex.assert_rank(solver.data["ExplorePolicy"], 2)
     chex.assert_rank(solver.data["EvaluatePolicy"], 2)
 
@@ -73,20 +73,19 @@ def test_target_mixin():
     config = PiConfig()
     mixins = MockSolver.make_mixins()
     solver = MockSolver.factory(env, config, mixins)
-    pol_dist = solver.target_pol_dist(solver.data["Q"])
-    q_targ = solver.target_q_tabular_dp(solver.data, pol_dist)
+    q_targ = solver.target_q_tabular_dp(solver.data)
     chex.assert_shape(q_targ, (env.dS, env.dA))
 
 
 def test_net_act_mixin():
+    from shinrl.solvers.discrete_pi._build_net_act_mixin import BuildNetActMixIn
     from shinrl.solvers.discrete_pi._build_net_mixin import BuildNetMixIn
-    from shinrl.solvers.discrete_pi._net_act_mixin import NetActMixIn
     from shinrl.solvers.discrete_pi.config import PiConfig
 
     class MockSolver(srl.BaseSolver):
         @staticmethod
         def make_mixins():
-            return [NetActMixIn, BuildNetMixIn, MockSolver]
+            return [BuildNetActMixIn, BuildNetMixIn, MockSolver]
 
         def step(self):
             pass

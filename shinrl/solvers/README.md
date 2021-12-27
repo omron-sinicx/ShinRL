@@ -13,7 +13,7 @@ Try the following tutorial at: [experiments/SolverTutorial.ipynb](../../experime
 	* 2.3. [GymEnv & ShinEnv Solver Example](#GymEnvShinEnvSolverExample)
 
 
-##  1. <a name='CreateCustomSolver'></a>Create custom Solver
+##  1. <a name='CreateCustomSolver'></a>Create Custom Solver
 
 This tutorial demonstrates how to create a custom solver.
 We are going to implement a very simple solver that tries to maximize the one-step reward.

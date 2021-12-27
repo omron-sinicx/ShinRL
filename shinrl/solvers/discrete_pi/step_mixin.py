@@ -14,13 +14,8 @@ from .config import PiConfig
 
 class TabularDpStepMixIn:
     def step(self):
-        # Update Logits-table
-        pol_dist = self.target_pol_dist(self.data["Q"])
-        self.data["Logits"] = pol_dist.logits
-
-        # Update Q-table
-        q_targ = self.target_q_tabular_dp(self.data, pol_dist)
-        self.data["Q"] = q_targ
+        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"])
+        self.data["Q"] = self.target_q_tabular_dp(self.data)
 
         # Update Policy-table
         self.update_tb_data()
@@ -30,12 +25,8 @@ class TabularDpStepMixIn:
 class TabularRlStepMixIn:
     def step(self):
         samples = self.explore()
-        # Update Logits-table
-        pol_dist = self.target_pol_dist(self.data["Q"])
-        self.data["Logits"] = pol_dist.logits
-
-        # Update Q-table
-        q_targ = self.target_q_tabular_rl(self.data, pol_dist, samples)
+        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"])
+        q_targ = self.target_q_tabular_rl(self.data, samples)
         state, act = samples.state, samples.act  # B
         q = self.data["Q"]
         self.data["Q"] = srl.calc_ma(self.config.q_lr, state, act, q, q_targ)
@@ -47,7 +38,6 @@ class TabularRlStepMixIn:
 
 class DeepDpStepMixIn:
     def step(self) -> None:
-        # Compute new Pol and Q Net params
         pol_res, q_res = self.calc_params(self.data)
         pol_loss, pol_prm, pol_state = pol_res
         q_loss, q_prm, q_state = q_res
@@ -55,8 +45,8 @@ class DeepDpStepMixIn:
         # Update params
         self.data.update(
             {
-                "PolNetParams": pol_prm,
-                "PolOptState": pol_state,
+                "LogPolNetParams": pol_prm,
+                "LogPolOptState": pol_state,
                 "QNetParams": q_prm,
                 "QOptState": q_state,
             }
@@ -88,8 +78,8 @@ class DeepRlStepMixIn:
         # Update params
         self.data.update(
             {
-                "PolNetParams": pol_prm,
-                "PolOptState": pol_state,
+                "LogPolNetParams": pol_prm,
+                "LogPolOptState": pol_state,
                 "QNetParams": q_prm,
                 "QOptState": q_state,
             }

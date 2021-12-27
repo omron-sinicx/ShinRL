@@ -11,7 +11,7 @@ import shinrl as srl
 from .config import DdpgConfig
 
 
-class NetActMixIn:
+class BuildNetActMixIn:
     def initialize(self, env: gym.Env, config: Optional[DdpgConfig] = None) -> None:
         super().initialize(env, config)
         self.explore_act = self._build_act_fn(self.config.explore.name)
