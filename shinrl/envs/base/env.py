@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import gym
 import jax
@@ -14,95 +14,30 @@ from chex import Array, PRNGKey
 from cpprb import ReplayBuffer
 
 import shinrl as srl
-from shinrl import MDP, EnvConfig
+
+from .config import EnvConfig
+from .mdp import MDP
 
 OBS, REW, DONE, INFO = Array, float, bool, Dict[str, Any]
-S, A = int, int
-STATES, PROBS = Array, Array
-TRAN_FN = Callable[[S, A], Tuple[STATES, PROBS]]
-REW_FN = Callable[[S, A], REW]
-OBS_FN = Callable[[S], OBS]
 
 
 class ShinEnv(ABC, gym.Env):
-    """
-    ABC to implement a new shin-environment.
-    You need to implement four functions:
-    * _init_probs: Return a probability array (dS).
-    * _make_reward_fn: Return a jittable reward function (REW_FN)
-    * _make_transition_fn: Return a jittable transition function (TRAN_FN)
-    * _make_observation_fn: Return a jittable observation function (OBS_FN)
-    Args:
-        config (EnvConfig): Environment's configuration.
-    """
+    """ ABC to implement a new shin-environment. """
+
+    # ########## YOU NEED TO IMPLEMENT HERE ##########
 
     DefaultConfig = EnvConfig
-
-    def __init__(self, config: Optional[EnvConfig] = None):
-        super().__init__()
-        self.initialize(config)
-
-    def initialize(self, config: Optional[EnvConfig] = None):
-        self._state: int = -1
-        self.elapsed_steps: int = 0
-        config = self.DefaultConfig() if config is None else config
-        self._config = config
-        self.key: PRNGKey = None
-        self.seed()
-
-        # set core functions
-        self.transition = self._make_transition_fn()
-        self.reward = self._make_reward_fn()
-        self.observation = self._make_observation_fn()
-        self.init_probs = self._init_probs()
-
-        # set mdp
-        obs_shape = self.observation_space.shape
-        dS, dA = self.dS, self.dA
-        self._init_states = jnp.arange(0, dS)
-        self.mdp: MDP = MDP(
-            dS=dS,
-            dA=dA,
-            obs_shape=obs_shape,
-            obs_mat=MDP.make_obs_mat(self.observation, dS, obs_shape),
-            rew_mat=MDP.make_rew_mat(self.reward, dS, dA),
-            tran_mat=MDP.make_tran_mat(self.transition, dS, dA),
-            init_probs=self.init_probs,
-            discount=config.discount,
-        )
-        self.mdp.is_valid_mdp(self.mdp)
-
-        # jit main functions
-        # TODO: Config is fixed at instantiation. Better to implement with initialize function like solvers.
-        def step(key, state, action):
-            states, probs = self.transition(state, action)
-            new_key, key = jax.random.split(key)
-            next_state = jax.random.choice(key, states, p=probs)
-            reward = self.reward(state, action)
-            next_obs = self.observation(next_state)
-            return new_key, next_state, reward, next_obs
-
-        def reset(key):
-            init_states, init_probs = self._init_states, self.init_probs
-            new_key, key = jax.random.split(key)
-            init_state = jax.random.choice(key, init_states, p=init_probs)
-            init_obs = self.observation(init_state)
-            return new_key, init_state, init_obs
-
-        # TODO: bug fix with jax.jit
-        self._step = jax.jit(step)
-        self._reset = jax.jit(reset)
-
-        self.reset()
 
     @property
     @abstractmethod
     def dS(self) -> int:
+        """Number of states."""
         pass
 
     @property
     @abstractmethod
     def dA(self) -> int:
+        """Number of actions."""
         pass
 
     @property
@@ -116,36 +51,161 @@ class ShinEnv(ABC, gym.Env):
         pass
 
     @abstractmethod
-    def _init_probs(self) -> PROBS:
-        """
+    def init_probs(self) -> Array:
+        """A function that returns the probabilities of initial states.
+
         Returns:
-            PROBS: (dS Array) Probabilities of initial states.
+            probs (dS Array): Probabilities of initial states.
         """
         pass
 
     @abstractmethod
-    def _make_transition_fn(self) -> TRAN_FN:
-        """
+    def transition(self, state: int, act: int) -> Tuple[Array, Array]:
+        """Transition function of the MDP.
+
+        Args:
+            state (int): state id.
+            act (int): action id.
+
         Returns:
-            TRAN_FN: Jittable transition function.
+            next_states (Array): Next state ids.
+            probs (Array): Probabilities of next state ids.
         """
         pass
 
     @abstractmethod
-    def _make_reward_fn(self) -> REW_FN:
-        """
+    def reward(self, state: int, act: int) -> float:
+        """Reward function of the MDP.
+
+        Args:
+            state (int): state id.
+            act (int): action id.
+
         Returns:
-            REW_FN: Jittable reward function.
+            rew (float): reward.
         """
         pass
 
     @abstractmethod
-    def _make_observation_fn(self) -> OBS_FN:
-        """
+    def observation(self, state: int) -> Array:
+        """Observation function of the MDP.
+
+        Args:
+            state (int): state id.
+
         Returns:
-            OBS_FN: Jittable observation function.
+            obs (Array): observation Array.
         """
         pass
+
+    def continuous_action(self, act: int) -> Array:
+        """A function that converts a discrete action to a continuous action.
+
+        Args:
+            act (int): action id.
+
+        Returns:
+            c_act (Array): continuous action Array.
+        """
+        raise NotImplementedError
+
+    def discrete_action(self, c_act: Array) -> int:
+        """A function that converts a continuous action to a discrete action.
+
+        Args:
+            c_act (Array): continuous action Array.
+
+        Returns:
+            act (int): action id.
+        """
+        raise NotImplementedError
+
+    # ################################################
+
+    def __init__(self, config: Optional[EnvConfig] = None):
+        super().__init__()
+        self.initialize(config)
+
+    def initialize(self, config: Optional[EnvConfig] = None):
+        self._config = self.DefaultConfig() if config is None else config
+        self._state: int = -1
+        self.elapsed_steps: int = 0
+        self.key: PRNGKey = None
+        self.seed()
+
+        is_continuous = isinstance(self.action_space, gym.spaces.Box)
+        if is_continuous:
+            is_high_normalized = (self.action_space.high == 1.0).all()
+            is_low_normalized = (self.action_space.low == -1.0).all()
+            assert_msg = """
+            The current ShinEnv assumes that the env.actions_space is in range [-1, 1].
+            Please normalize the action_space of the implemented env.
+            """
+            assert is_high_normalized and is_low_normalized, assert_msg
+
+        self.mdp = self._build_mdp()
+        self._step = self._build_c_step() if is_continuous else self._build_step()
+        self._reset = self._build_reset()
+
+        self.reset()
+
+    def _build_mdp(self) -> MDP:
+        is_continuous = isinstance(self.action_space, gym.spaces.Box)
+        obs_shape = self.observation_space.shape
+        dS, dA = self.dS, self.dA
+        act_shape, act_mat = None, None
+        if is_continuous:
+            act_shape = self.action_space.shape
+            act_mat = MDP.make_act_mat(self.continuous_action, dA, act_shape)
+        mdp = MDP(
+            dS=dS,
+            dA=dA,
+            obs_shape=obs_shape,
+            obs_mat=MDP.make_obs_mat(self.observation, dS, obs_shape),
+            rew_mat=MDP.make_rew_mat(self.reward, dS, dA),
+            tran_mat=MDP.make_tran_mat(self.transition, dS, dA),
+            init_probs=self.init_probs(),
+            discount=self.config.discount,
+            act_shape=act_shape,
+            act_mat=act_mat,
+        )
+        mdp.is_valid_mdp(mdp)
+        return mdp
+
+    def _build_step(self):
+        def step(key, state, action):
+            states, probs = self.transition(state, action)
+            new_key, key = jax.random.split(key)
+            next_state = jax.random.choice(key, states, p=probs)
+            reward = self.reward(state, action)
+            next_obs = self.observation(next_state)
+            return new_key, next_state, reward, next_obs
+
+        return jax.jit(step)
+
+    def _build_c_step(self):
+        def continuous_step(key, state, action):
+            action = self.discrete_action(action)
+            states, probs = self.transition(state, action)
+            new_key, key = jax.random.split(key)
+            next_state = jax.random.choice(key, states, p=probs)
+            reward = self.reward(state, action)
+            next_obs = self.observation(next_state)
+            return new_key, next_state, reward, next_obs
+
+        return jax.jit(continuous_step)
+
+    def _build_reset(self):
+        init_probs = self.init_probs()
+        init_states = jnp.arange(0, self.dS)
+
+        def reset(key):
+            new_key, key = jax.random.split(key)
+            init_state = jax.random.choice(key, init_states, p=init_probs)
+            init_obs = self.observation(init_state)
+            return new_key, init_state, init_obs
+
+        return jax.jit(reset)
 
     @property
     def config(self) -> EnvConfig:

@@ -10,10 +10,19 @@ import numpy as np
 from chex import Array
 from matplotlib.axes import Axes
 
-from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
+from shinrl import ShinEnv
 
-from .core import calc, plot
-from .core.config import PendulumConfig
+from .calc import (
+    observation_image,
+    observation_tuple,
+    reward,
+    th_vel_to_state,
+    to_continuous_act,
+    to_discrete_act,
+    transition,
+)
+from .config import PendulumConfig
+from .plot import plot_S
 
 
 class Pendulum(ShinEnv):
@@ -55,13 +64,13 @@ class Pendulum(ShinEnv):
             space = gym.spaces.Discrete(self.config.dA)
         elif self.config.act_mode == PendulumConfig.ACT_MODE.continuous:
             space = gym.spaces.Box(
-                low=np.array(-self.config.torque_max),
-                high=np.array(self.config.torque_max),
+                low=np.array((-1.0,)),
+                high=np.array((1.0,)),
                 dtype=float,
             )
         return space
 
-    def _init_probs(self) -> Array:
+    def init_probs(self) -> Array:
         th_step = (2 * jnp.pi) / (self.config.theta_res - 1)
         vel_step = (2 * self.config.vel_max) / (self.config.vel_res - 1)
         ini_ths = jnp.arange(-jnp.pi, jnp.pi, th_step)
@@ -69,25 +78,31 @@ class Pendulum(ShinEnv):
         idxs = []
         for ini_th in ini_ths:
             for ini_vel in ini_vels:
-                idxs.append(calc.th_vel_to_state(self.config, ini_th, ini_vel))
+                idxs.append(th_vel_to_state(self.config, ini_th, ini_vel))
         idxs = np.unique(np.array(idxs))
         probs = np.ones_like(idxs, dtype=float) / len(idxs)
         init_probs = np.zeros(self.dS)
         np.put(init_probs, idxs, probs)
         return jnp.array(init_probs)
 
-    def _make_transition_fn(self) -> TRAN_FN:
-        return lambda state, action: calc.transition(self.config, state, action)
+    def transition(self, state, action):
+        return transition(self.config, state, action)
 
-    def _make_reward_fn(self) -> REW_FN:
-        return lambda state, action: calc.reward(self.config, state, action)
+    def reward(self, state, action):
+        return reward(self.config, state, action)
 
-    def _make_observation_fn(self) -> OBS_FN:
+    def observation(self, state):
         if self.config.obs_mode == PendulumConfig.OBS_MODE.tuple:
-            obs_fn = calc.observation_tuple
+            obs_fn = observation_tuple
         elif self.config.obs_mode == PendulumConfig.OBS_MODE.image:
-            obs_fn = calc.observation_image
-        return lambda state: obs_fn(self.config, state)
+            obs_fn = observation_image
+        return obs_fn(self.config, state)
+
+    def continuous_action(self, act):
+        return to_continuous_act(self.config, jnp.array([act]))
+
+    def discrete_action(self, c_act):
+        return to_discrete_act(self.config, c_act)
 
     def plot_S(
         self,
@@ -100,4 +115,4 @@ class Pendulum(ShinEnv):
         fontsize: Optional[int] = 10,
         **kwargs: Any,
     ) -> None:
-        plot.plot_S(tb, self.config, title, ax, cbar_ax, vmin, vmax, fontsize, **kwargs)
+        plot_S(tb, self.config, title, ax, cbar_ax, vmin, vmax, fontsize, **kwargs)

@@ -153,7 +153,7 @@ def make_replay_buffer(env: gym.Env, size: int) -> ReplayBuffer:
         "done": {"dtype": bool, "shape": 1},
         "obs": {"dtype": float, "shape": env.observation_space.shape},
         "act": {"dtype": act_type, "shape": act_shape},
-        "log_prob": {"dtype": float, "shape": 1},
+        "log_prob": {"dtype": float, "shape": act_shape},
         "timeout": {"dtype": bool, "shape": 1},
     }
     if is_shin_env:

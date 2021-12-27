@@ -1,3 +1,7 @@
+""" Functions for logging.
+Author: Toshinori Kitamura
+Affiliation: NAIST & OSX
+"""
 import logging
 
 import structlog

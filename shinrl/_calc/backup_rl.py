@@ -1,5 +1,6 @@
 """
-Bellman-backup functions for reinforcement learning. Use collected samples to approximate the expectation.
+Bellman-backup functions for reinforcement learning. 
+Use collected samples to approximate the expectation.
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """

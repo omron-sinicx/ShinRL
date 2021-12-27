@@ -1,5 +1,4 @@
-"""
-MinAtar environment made compatible for Gym.
+""" MinAtar environment made compatible for Gym.
 See https://github.com/kenjyoung/MinAtar to install minatar.
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX

@@ -4,7 +4,7 @@ import numpy.testing as npt
 
 
 def test_str_to_maze_array():
-    from shinrl.envs.maze.core.calc import str_to_maze_array
+    from shinrl.envs.maze.calc import str_to_maze_array
 
     str_maze = "SOOO\\" + "O###\\" + "OOOO\\" + "O#RO\\"
     array = str_to_maze_array(str_maze)
@@ -12,14 +12,14 @@ def test_str_to_maze_array():
 
 
 def test_out_of_bounds():
-    from shinrl.envs.maze.core.calc import out_of_bounds
+    from shinrl.envs.maze.calc import out_of_bounds
 
     maze = jnp.zeros((4, 4), dtype=int)
     assert out_of_bounds(maze, 5, 7)
 
 
 def test_state_to_xy():
-    from shinrl.envs.maze.core.calc import state_to_xy
+    from shinrl.envs.maze.calc import state_to_xy
 
     maze = jnp.zeros((4, 4), dtype=int)
     x, y = state_to_xy(maze, 2)
@@ -28,7 +28,7 @@ def test_state_to_xy():
 
 
 def test_xy_to_state():
-    from shinrl.envs.maze.core.calc import xy_to_state
+    from shinrl.envs.maze.calc import xy_to_state
 
     maze = jnp.zeros((4, 4), dtype=int)
     state = xy_to_state(maze, 2, 2)
@@ -36,7 +36,7 @@ def test_xy_to_state():
 
 
 def test_reward():
-    from shinrl.envs.maze.core.calc import reward
+    from shinrl.envs.maze.calc import reward
 
     maze = jnp.zeros((4, 4), dtype=int)
     rew = reward(maze, 1, 0)
@@ -44,7 +44,7 @@ def test_reward():
 
 
 def test_transition():
-    from shinrl.envs.maze.core.calc import MazeConfig, transition
+    from shinrl.envs.maze.calc import MazeConfig, transition
 
     maze = jnp.zeros((4, 4), dtype=int)
     config = MazeConfig(eps=0.0)
@@ -58,7 +58,7 @@ def test_transition():
 
 
 def test_onehot_observation():
-    from shinrl.envs.maze.core.calc import onehot_observation
+    from shinrl.envs.maze.calc import onehot_observation
 
     maze = jnp.zeros((4, 4), dtype=int)
     onehot = onehot_observation(maze, 2)
@@ -66,7 +66,7 @@ def test_onehot_observation():
 
 
 def test_init_probs():
-    from shinrl.envs.maze.core.calc import init_probs
+    from shinrl.envs.maze.calc import init_probs
 
     maze = jnp.zeros((4, 4), dtype=int)
     maze = maze.at[1, 0].set(3)

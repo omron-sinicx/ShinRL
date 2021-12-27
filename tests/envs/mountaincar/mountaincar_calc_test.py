@@ -11,40 +11,40 @@ def setUp():
     return config
 
 
-def test_force_to_act(setUp):
-    from shinrl.envs.mountaincar.core.calc import force_to_act
+def test_to_discrete_act(setUp):
+    from shinrl.envs.mountaincar.calc import to_discrete_act
 
     config = setUp
-    act = force_to_act(config, -0.4)
+    act = to_discrete_act(config, -0.4)
 
     # jit testing
     config10 = MountainCar.DefaultConfig(dA=50)
-    act = force_to_act(config10, -0.4)
+    act = to_discrete_act(config10, -0.4)
 
 
-def test_act_to_force(setUp):
-    from shinrl.envs.mountaincar.core.calc import act_to_force
+def test_to_continuous_act(setUp):
+    from shinrl.envs.mountaincar.calc import to_continuous_act
 
     config = setUp
-    act = act_to_force(config, 2)
+    act = to_continuous_act(config, 2)
 
 
 def test_state_to_pos_vel(setUp):
-    from shinrl.envs.mountaincar.core.calc import state_to_pos_vel
+    from shinrl.envs.mountaincar.calc import state_to_pos_vel
 
     config = setUp
     pos, vel = state_to_pos_vel(config, 1)
 
 
 def test_pos_vel_to_state(setUp):
-    from shinrl.envs.mountaincar.core.calc import pos_vel_to_state
+    from shinrl.envs.mountaincar.calc import pos_vel_to_state
 
     config = setUp
     state = pos_vel_to_state(config, -2.938909, -8)
 
 
 def test_transition(setUp):
-    from shinrl.envs.mountaincar.core.calc import transition
+    from shinrl.envs.mountaincar.calc import transition
 
     config = setUp
     next_state, probs = transition(config, 1, 2)
@@ -53,7 +53,7 @@ def test_transition(setUp):
 
 
 def test_reward(setUp):
-    from shinrl.envs.mountaincar.core.calc import reward
+    from shinrl.envs.mountaincar.calc import reward
 
     config = setUp
     rew = reward(config, 1, 2)
@@ -61,13 +61,13 @@ def test_reward(setUp):
 
 
 def test_observation():
-    from shinrl.envs.mountaincar.core.calc import observation_tuple
+    from shinrl.envs.mountaincar.calc import observation_tuple
 
     config = MountainCar.DefaultConfig(obs_mode="tuple")
     obs = observation_tuple(config, 1)
     chex.assert_shape(obs, (2,))
 
-    from shinrl.envs.mountaincar.core.calc import observation_image
+    from shinrl.envs.mountaincar.calc import observation_image
 
     config = MountainCar.DefaultConfig(obs_mode="image")
     obs = observation_image(config, 1)

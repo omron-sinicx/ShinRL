@@ -1,5 +1,6 @@
 """
-Bellman-backup functions for dynamic programming. Use oracle transition-matrix to compute the expectation.
+Bellman-backup functions for dynamic programming. 
+Use oracle transition-matrix to compute the expectation.
 Author: Toshinori Kitamura
 Affiliation: NAIST & OSX
 """

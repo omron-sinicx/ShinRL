@@ -9,11 +9,11 @@ import jax.numpy as jnp
 
 
 @jax.jit
-def calc_eps(n_step: int, eps_decay: float, eps_warmup: int, eps_end: float) -> float:
+def calc_eps(n_step: int, eps_decay: int, eps_warmup: int, eps_end: float) -> float:
     """Calculate the epsilon value for epsilon-greedy policy.
     Args:
         n_step (int): the current step
-        eps_decay (float): the period over which epsilon is decayed.
+        eps_decay (int): the period over which epsilon is decayed.
         eps_warmup (int): the number of steps taken before epsilon is decayed.
         eps_end (float): the final value to which to decay the epsilon parameter.
 

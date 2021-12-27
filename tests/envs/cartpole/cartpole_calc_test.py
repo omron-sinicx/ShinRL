@@ -11,40 +11,40 @@ def setUp():
     return config
 
 
-def test_force_to_act(setUp):
-    from shinrl.envs.cartpole.core.calc import force_to_act
+def test_to_discrete_act(setUp):
+    from shinrl.envs.mountaincar.calc import to_discrete_act
 
     config = setUp
-    act = force_to_act(config, -0.4)
+    act = to_discrete_act(config, -0.4)
 
     # jit testing
     config10 = CartPole.DefaultConfig(dA=50)
-    act = force_to_act(config10, -0.4)
+    act = to_discrete_act(config10, -0.4)
 
 
-def test_act_to_force(setUp):
-    from shinrl.envs.cartpole.core.calc import act_to_force
+def test_to_continuous_act(setUp):
+    from shinrl.envs.mountaincar.calc import to_continuous_act
 
     config = setUp
-    act = act_to_force(config, 2)
+    act = to_continuous_act(config, 2)
 
 
 def test_state_to_x_th(setUp):
-    from shinrl.envs.cartpole.core.calc import state_to_x_th
+    from shinrl.envs.cartpole.calc import state_to_x_th
 
     config = setUp
     _ = state_to_x_th(config, 1)
 
 
 def test_x_th_to_state(setUp):
-    from shinrl.envs.cartpole.core.calc import x_th_to_state
+    from shinrl.envs.cartpole.calc import x_th_to_state
 
     config = setUp
     _ = x_th_to_state(config, -1.0, -1.0, 0.0, 0.0)
 
 
 def test_transition(setUp):
-    from shinrl.envs.cartpole.core.calc import transition
+    from shinrl.envs.cartpole.calc import transition
 
     config = setUp
     next_state, probs = transition(config, 1, 2)
@@ -53,14 +53,14 @@ def test_transition(setUp):
 
 
 def test_reward(setUp):
-    from shinrl.envs.cartpole.core.calc import reward
+    from shinrl.envs.cartpole.calc import reward
 
     config = setUp
     rew = reward(config, 1, 2)
 
 
 def test_observation():
-    from shinrl.envs.cartpole.core.calc import observation_tuple
+    from shinrl.envs.cartpole.calc import observation_tuple
 
     config = CartPole.DefaultConfig()
     obs = observation_tuple(config, 1)

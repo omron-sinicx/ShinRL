@@ -19,16 +19,16 @@ from tqdm import tqdm
 
 from shinrl import ShinEnv
 
-from .core.config import SolverConfig
-from .core.history import History
+from .config import SolverConfig
+from .history import History
 
 
-class Solver(ABC, History):
+class BaseSolver(ABC, History):
     """
     Base class to implement solvers. The results are treated by the inherited History class.
 
-    # MixIn Design:
-    Our Solver interface adopts "mixin" design to realize the flexible behavior.
+    # MixIn:
+    Our Solver interface adopts "mixin" mechanism to realize the flexible behavior.
     The `make_mixin` method should return mixins that have necessary methods such as `evaluate` and `step` functions.
     See [shinrl/solvers/vi/discrete/solver.py] for an example implementation.
     """
@@ -36,20 +36,7 @@ class Solver(ABC, History):
     _id: Iterator[int] = count(0)
     DefaultConfig = SolverConfig
 
-    @staticmethod
-    def factory(
-        env: gym.Env,
-        config: SolverConfig,
-        mixins: List[Type[object]],
-    ) -> Solver:
-        """Instantiate a solver with mixins and initialize it."""
-
-        class MixedSolver(*mixins):
-            pass
-
-        solver = MixedSolver()
-        solver.initialize(env, config)
-        return solver
+    # ########## YOU NEED TO IMPLEMENT HERE ##########
 
     @abstractstaticmethod
     def make_mixins(env: gym.Env, config: SolverConfig) -> List[Type[object]]:
@@ -62,9 +49,29 @@ class Solver(ABC, History):
         pass
 
     @abstractmethod
-    def step(self) -> None:
-        """Execute the solver by one step."""
+    def step(self) -> Dict[str, float]:
+        """Execute the solver by one step and return the dict of results."""
         pass
+
+    # ################################################
+
+    @staticmethod
+    def factory(
+        env: gym.Env,
+        config: SolverConfig,
+        mixins: List[Type[object]],
+    ) -> BaseSolver:
+        """Instantiate a solver with mixins and initialize it."""
+
+        class MixedSolver(*mixins):
+            pass
+
+        solver = MixedSolver()
+        solver.mixins = mixins
+        methods = inspect.getmembers(solver, predicate=inspect.ismethod)
+        solver.methods_str = [method[1].__qualname__ for method in methods]
+        solver.initialize(env, config)
+        return solver
 
     def __init__(self) -> None:
         self.env_id: int = -1
@@ -73,6 +80,8 @@ class Solver(ABC, History):
         self.is_initialized: bool = False
         self.env = None
         self.key: PRNGKey = None
+        self.mixins: List[Type] = []
+        self.methods_str: List[str] = []
 
     def initialize(
         self,
@@ -90,12 +99,9 @@ class Solver(ABC, History):
         self.set_env(env)
         self.seed(self.config.seed)
         self.is_initialized = True
-
-        inheritances = inspect.getmro(self.__class__)
-        mixins = [mixin.__name__ for mixin in inheritances if ("MixIn" in str(mixin))]
-        methods = inspect.getmembers(self, predicate=inspect.ismethod)
-        methods = [method[1].__qualname__ for method in methods]
-        self.logger.info("Solver is initialized.", mixins=mixins, methods=methods)
+        self.logger.info(
+            "Solver is initialized.", mixins=self.mixins, methods=self.methods_str
+        )
 
     def seed(self, seed: int = 0) -> None:
         self.key = jax.random.PRNGKey(seed)
@@ -111,12 +117,23 @@ class Solver(ABC, History):
             return isinstance(self.env, ShinEnv)
 
     def set_env(self, env: gym.Env, reset: bool = True) -> None:
-        """Set the environment to solve.
+        """Set the environment to self.env.
         Args:
             env (gym.Env): Environment to solve.
             reset (bool): Reset the env if True
         """
+
+        if isinstance(env.action_space, gym.spaces.Box):
+            is_high_normalized = (env.action_space.high == 1.0).all()
+            is_low_normalized = (env.action_space.low == -1.0).all()
+            assert_msg = """
+            Algorithms in ShinRL assume that the env.actions_space is in range [-1, 1].
+            Please wrap the env by shinrl.NormalizeActionWrapper.
+            """
+            assert is_high_normalized and is_low_normalized, assert_msg
         self.env = env
+
+        # Check discount factor
         if self.is_shin_env:
             if self.config.discount != env.config.discount:
                 self.logger.warning(
@@ -125,6 +142,7 @@ class Solver(ABC, History):
                 )
             self.dS, self.dA, self.horizon = env.mdp.dS, env.mdp.dA, env.config.horizon
 
+        # Reset env if necessary
         if reset:
             if isinstance(self.env, gym.wrappers.Monitor):
                 # With Monitor, reset() cannot be called unless the episode is over.
@@ -141,6 +159,7 @@ class Solver(ABC, History):
             assert hasattr(
                 env, "obs"
             ), 'env must have attribute "obs". Do env.obs = obs before calling "set_env".'
+
         self.env_id += 1
         self.logger = structlog.get_logger(solver_id=self.solver_id, env_id=self.env_id)
         self.logger.info("set_env is called.")
@@ -154,16 +173,20 @@ class Solver(ABC, History):
         assert self.is_initialized, '"self.initialize" is not called.'
         num_steps = self.config.steps_per_epoch
         for _ in tqdm(range(num_steps), desc=f"Epoch {self.n_epoch}"):
+            # Do evaluation
             if self.n_step % self.config.eval_interval == 0:
-                res = self.evaluate()
-                for key, val in res.items():
+                eval_res = self.evaluate()
+                for key, val in eval_res.items():
                     self.add_scalar(key, val)
-            self.step()
+
+            # Do one-step update
+            step_res = self.step()
+            for key, val in step_res.items():
+                self.add_scalar(key, val)
             self.n_step += 1
         self.n_epoch += 1
         self.logger.info(
             f"Epoch {self.n_epoch} has ended.",
             epoch_summary=self.recent_summary(num_steps),
-            tb_dict=list(self.tb_dict.keys()),
-            prms_dict=list(self.prms_dict.keys()),
+            data=list(self.data.keys()),
         )

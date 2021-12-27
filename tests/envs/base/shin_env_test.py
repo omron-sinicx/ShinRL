@@ -33,22 +33,19 @@ class MockEnv(ShinEnv):
     def action_space(self):
         return gym.spaces.Discrete(5)
 
-    def _init_probs(self):
+    def init_probs(self):
         return jnp.array([0.2, 0.8, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    def _make_transition_fn(self):
-        def transition(state, action):
-            next_state = jnp.array([state, (state + action) % 10], dtype=int)
-            prob = jnp.array([0.2, 0.8], dtype=float)
-            return next_state, prob
+    def transition(self, state, action):
+        next_state = jnp.array([state, (state + action) % 10], dtype=int)
+        prob = jnp.array([0.2, 0.8], dtype=float)
+        return next_state, prob
 
-        return transition
+    def reward(self, state, action):
+        return jnp.array(state + action, dtype=float)
 
-    def _make_reward_fn(self):
-        return lambda state, action: jnp.array(state + action, dtype=float)
-
-    def _make_observation_fn(self):
-        return lambda state: jnp.array([state, state + 5], dtype=float)
+    def observation(self, state):
+        return jnp.array([state, state + 5], dtype=float)
 
 
 def test_reset_step():

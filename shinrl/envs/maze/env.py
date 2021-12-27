@@ -7,10 +7,10 @@ import jax.numpy as jnp
 import numpy as np
 from chex import Array
 
-from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
+from shinrl import ShinEnv
 
-from .core import calc
-from .core.config import MazeConfig
+from .calc import init_probs, onehot_observation, reward, str_to_maze_array, transition
+from .config import MazeConfig
 
 
 class Maze(ShinEnv):
@@ -53,29 +53,27 @@ class Maze(ShinEnv):
     def action_space(self) -> gym.spaces.Space:
         return gym.spaces.Discrete(5)
 
-    def _init_probs(self) -> Array:
-        init_states, probs = calc.init_probs(self.maze)
-        init_probs = np.zeros(self.dS)
-        np.put(init_probs, init_states, probs)
-        return jnp.array(init_probs)
+    def init_probs(self) -> Array:
+        init_states, probs = init_probs(self.maze)
+        res = np.zeros(self.dS)
+        np.put(res, init_states, probs)
+        return jnp.array(res)
 
-    def _make_transition_fn(self) -> TRAN_FN:
-        return lambda state, action: calc.transition(
-            self.config, self.maze, state, action
-        )
+    def transition(self, state, action):
+        return transition(self.config, self.maze, state, action)
 
-    def _make_reward_fn(self) -> REW_FN:
-        return lambda state, action: calc.reward(self.maze, state, action)
+    def reward(self, state, action):
+        return reward(self.maze, state, action)
 
-    def _make_observation_fn(self) -> OBS_FN:
+    def observation(self, state):
         if self.config.obs_mode == MazeConfig.OBS_MODE.onehot:
-            return lambda state: calc.onehot_observation(self.maze, state)
+            return onehot_observation(self.maze, state)
         elif self.config.obs_mode == MazeConfig.OBS_MODE.random:
-            return lambda state: self.random_obs[state]
+            return self.random_obs[state]
 
     @staticmethod
     def str_to_maze_array(string: str) -> Array:
-        return calc.str_to_maze_array(string)
+        return str_to_maze_array(string)
 
     @staticmethod
     def create_random_maze_str(width: int, height: int) -> str:

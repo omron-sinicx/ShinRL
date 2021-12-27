@@ -19,45 +19,55 @@ from ._calc.backup_rl import (
     optimal_backup_rl,
     soft_expected_backup_rl,
 )
-from ._calc.build_net import build_forward_conv, build_forward_fc, build_net_act
+from ._calc.build_net import (
+    build_obs_act_forward_conv,
+    build_obs_act_forward_fc,
+    build_obs_forward_conv,
+    build_obs_forward_fc,
+)
+from ._calc.build_net_act import (
+    build_continuous_greedy_net_act,
+    build_discrete_greedy_net_act,
+    build_eps_greedy_net_act,
+    build_fixed_scale_normal_net_act,
+    build_softmax_net_act,
+)
 from ._calc.collect_samples import ACT_FN, Sample, collect_samples, make_replay_buffer
 from ._calc.draw import draw_circle, line_aa
 from ._calc.epsilon_greedy import calc_eps
 from ._calc.loss import cross_entropy_loss, huber_loss, kl_loss, l2_loss
-from ._calc.mdp import MDP
 from ._calc.moving_average import calc_ma
 from ._calc.sparse import SparseMat, sp_mul, sp_mul_t
 
 # Common useful functions & classes.
 from ._utils.config import Config
-from ._utils.jittable import DictJittable
 from ._utils.log import add_logfile_handler, initialize_log_style
 from ._utils.minatar import make_minatar
-from ._utils.params import ParamsDict
-from ._utils.prepare_history_dir import prepare_history_dir
 from ._utils.scalars import Scalars
-from ._utils.tables import TbDict
+from ._utils.wrapper import NormalizeActionWrapper
 
 # Implemented environments with access to the *oracle* quantities.
 from .envs.base.config import EnvConfig
-from .envs.base.env import OBS_FN, REW_FN, TRAN_FN, ShinEnv
+from .envs.base.env import ShinEnv
+from .envs.base.mdp import MDP
 from .envs.cartpole.env import CartPole
 from .envs.maze.env import Maze
 from .envs.mountaincar.env import MountainCar
 from .envs.pendulum.env import Pendulum
+from .solvers.base.base_mixin import (
+    BaseGymEvalMixIn,
+    BaseGymExploreMixIn,
+    BaseShinEvalMixIn,
+    BaseShinExploreMixIn,
+)
 
 # Implemented environments with access to the *oracle* quantities.
-from .solvers.base.core.config import SolverConfig
-from .solvers.base.core.history import History
-from .solvers.base.core.mixin import (
-    GymEvalMixIn,
-    GymExploreMixIn,
-    ShinEvalMixIn,
-    ShinExploreMixIn,
-)
-from .solvers.base.solver import Solver
-from .solvers.pi.discrete.solver import DiscretePiSolver
-from .solvers.vi.discrete.solver import DiscreteViSolver
+from .solvers.base.config import SolverConfig
+from .solvers.base.history import DataDict, History, prepare_history_dir
+from .solvers.base.solver import BaseSolver
+from .solvers.continuous_ddpg.solver import ContinuousDdpgSolver
+from .solvers.discrete_pi.solver import DiscretePiSolver
+from .solvers.discrete_vi.solver import DiscreteViSolver
 
 initialize_log_style()
 

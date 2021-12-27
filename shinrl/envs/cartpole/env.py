@@ -8,10 +8,17 @@ import jax.numpy as jnp
 import numpy as np
 from chex import Array
 
-from shinrl import OBS_FN, REW_FN, TRAN_FN, ShinEnv
+from shinrl import ShinEnv
 
-from .core import calc
-from .core.config import CartPoleConfig
+from .calc import (
+    observation_tuple,
+    reward,
+    to_continuous_act,
+    to_discrete_act,
+    transition,
+    x_th_to_state,
+)
+from .config import CartPoleConfig
 
 
 class CartPole(ShinEnv):
@@ -55,13 +62,13 @@ class CartPole(ShinEnv):
             space = gym.spaces.Discrete(self.config.dA)
         elif self.config.act_mode == CartPoleConfig.ACT_MODE.continuous:
             space = gym.spaces.Box(
-                low=np.array(-self.config.force_max),
-                high=np.array(self.config.force_max),
+                low=np.array((-1.0,), dtype=float),
+                high=np.array((1.0,), dtype=float),
                 dtype=float,
             )
         return space
 
-    def _init_probs(self) -> Array:
+    def init_probs(self) -> Array:
         ini_x = 0
         ini_x_dot = 0
         th_step = 2 * self.config.th_max / (self.config.th_res - 1)
@@ -73,7 +80,7 @@ class CartPole(ShinEnv):
         for i_th in ini_th:
             for i_th_dot in ini_th_dot:
                 idxs.append(
-                    calc.x_th_to_state(self.config, ini_x, ini_x_dot, i_th, i_th_dot)
+                    x_th_to_state(self.config, ini_x, ini_x_dot, i_th, i_th_dot)
                 )
         idxs = np.unique(np.array(idxs, dtype=int))
         probs = np.ones_like(idxs, dtype=float) / len(idxs)
@@ -81,11 +88,17 @@ class CartPole(ShinEnv):
         np.put(init_probs, idxs, probs)
         return jnp.array(init_probs)
 
-    def _make_transition_fn(self) -> TRAN_FN:
-        return lambda state, action: calc.transition(self.config, state, action)
+    def transition(self, state, action):
+        return transition(self.config, state, action)
 
-    def _make_reward_fn(self) -> REW_FN:
-        return lambda state, action: calc.reward(self.config, state, action)
+    def reward(self, state, action):
+        return reward(self.config, state, action)
 
-    def _make_observation_fn(self) -> OBS_FN:
-        return lambda state: calc.observation_tuple(self.config, state)
+    def observation(self, state):
+        return observation_tuple(self.config, state)
+
+    def continuous_action(self, act):
+        return to_continuous_act(self.config, jnp.array([act]))
+
+    def discrete_action(self, c_act):
+        return to_discrete_act(self.config, c_act)
