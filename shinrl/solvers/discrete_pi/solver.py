@@ -14,18 +14,22 @@ from ._build_calc_params_mixin import BuildCalcParamsDpMixIn, BuildCalcParamsRlM
 from ._build_net_act_mixin import BuildNetActMixIn
 from ._build_net_mixin import BuildNetMixIn
 from ._build_table_mixin import BuildTableMixIn
-from ._target_mixin import QTargetMixIn, SoftQTargetMixIn
-from .config import PiConfig
-from .step_mixin import (
+from ._step_mixin import (
     DeepDpStepMixIn,
     DeepRlStepMixIn,
     TabularDpStepMixIn,
     TabularRlStepMixIn,
 )
+from ._target_mixin import QTargetMixIn, SoftQTargetMixIn
+from .config import PiConfig
 
 
 class DiscretePiSolver(srl.BaseSolver):
-    """Policy iteration solver. """
+    """Policy iteration (PI) solver.
+
+    This solver implements some basic PI-based algorithms for a discrete action space.
+    For example, DiscretePiSolver turns into Discrete-SAC when approx == "nn", explore != "oracle", and er_coef != 0.
+    """
 
     DefaultConfig = PiConfig
 
@@ -33,21 +37,24 @@ class DiscretePiSolver(srl.BaseSolver):
     def make_mixins(env: gym.Env, config: PiConfig) -> List[Type[object]]:
         approx, explore = config.approx, config.explore
         APPROX, EXPLORE = config.APPROX, config.EXPLORE
-        mixin_list: List[Type[object]] = [DiscretePiSolver]
         if isinstance(env, gym.Wrapper):
             is_shin_env = isinstance(env.unwrapped, srl.ShinEnv)
         else:
             is_shin_env = isinstance(env, srl.ShinEnv)
 
-        # Set evaluation and exploration mixins
+        mixin_list: List[Type[object]] = [DiscretePiSolver]
+
+        # Add base mixins for evaluation and exploration.
         if is_shin_env:
             mixin_list += [srl.BaseShinEvalMixIn, srl.BaseShinExploreMixIn]
         else:
             mixin_list += [srl.BaseGymEvalMixIn, srl.BaseGymExploreMixIn]
 
+        # Add mixins to prepare networks.
         if approx == APPROX.nn:
             mixin_list += [BuildNetMixIn, BuildNetActMixIn]
 
+        # Add mixins to prepare tables.
         if is_shin_env:
             mixin_list += [BuildTableMixIn]
 

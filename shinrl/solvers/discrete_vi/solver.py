@@ -12,31 +12,21 @@ from ._build_calc_params_mixin import BuildCalcParamsDpMixIn, BuildCalcParamsRlM
 from ._build_net_act_mixin import BuildNetActMixIn
 from ._build_net_mixin import BuildNetMixIn
 from ._build_table_mixin import BuildTableMixIn
-from ._target_mixin import DoubleQTargetMixIn, MunchausenTargetMixIn, QTargetMixIn
-from .config import ViConfig
-from .step_mixin import (
+from ._step_mixin import (
     DeepDpStepMixIn,
     DeepRlStepMixIn,
     TabularDpStepMixIn,
     TabularRlStepMixIn,
 )
+from ._target_mixin import DoubleQTargetMixIn, MunchausenTargetMixIn, QTargetMixIn
+from .config import ViConfig
 
 
 class DiscreteViSolver(srl.BaseSolver):
-    """Value iteration solver.
+    """Value iteration (VI) solver.
 
-    Value iteration (VI) is a classical approach to find the optimal policy and its values in a MDP.
-    Many recent RL algorithms have been extended from classical VI.
-    For example, the popular DQN algorithm can be considered as
-    a VI extension with function approximation and exploration.
-
-    This ViSolver changes its behavior according to 'config':
-
-    * Value Iteration: approx == "tabular" & explore == "oracle".
-    * Tabular Q learning: approx == "tabular" & explore != "oracle".
-    * DQN: approx == "nn" & explore != "oracle".
-    * Deep VI: approx == "nn" & explore == "oracle". Approximate computed table with NN. Usefule to evaluate the NN capacity.
-    * Munchausen VI, tabular Q or DQN: same as above except kl_coef != 0 or er_coef != 0.
+    This solver implements some basic VI-based algorithms.
+    For example, DiscreteViSolver turns into DQN when approx == "nn" and explore != "oracle".
     """
 
     DefaultConfig = ViConfig
@@ -45,24 +35,25 @@ class DiscreteViSolver(srl.BaseSolver):
     def make_mixins(env: gym.Env, config: ViConfig) -> List[Type[object]]:
         approx, explore = config.approx, config.explore
         APPROX, EXPLORE = config.APPROX, config.EXPLORE
-        mixin_list: List[Type[object]] = [DiscreteViSolver]
         if isinstance(env, gym.Wrapper):
             is_shin_env = isinstance(env.unwrapped, srl.ShinEnv)
         else:
             is_shin_env = isinstance(env, srl.ShinEnv)
 
-        # Set base mixins for evaluation and exploration.
+        mixin_list: List[Type[object]] = [DiscreteViSolver]
+
+        # Add base mixins for evaluation and exploration.
         if is_shin_env:
             mixin_list += [srl.BaseShinEvalMixIn, srl.BaseShinExploreMixIn]
         else:
             mixin_list += [srl.BaseGymEvalMixIn, srl.BaseGymExploreMixIn]
 
+        # Add mixins to prepare networks.
         if approx == APPROX.nn:
-            # Prepare networks: "q_net"
             mixin_list += [BuildNetMixIn, BuildNetActMixIn]
 
+        # Add mixins to prepare tables.
         if is_shin_env:
-            # Prepare tables: "Q"
             mixin_list += [BuildTableMixIn]
 
         # Add algorithm mixins to compute Q-targets

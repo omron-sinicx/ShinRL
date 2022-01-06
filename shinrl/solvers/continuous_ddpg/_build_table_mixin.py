@@ -62,15 +62,16 @@ class BuildTableMixIn:
 def to_greedy_probs(mean: Array, act_mat: Array) -> Array:
     dS, dA = mean.shape[0], mean.shape[1]
     mean = mean.reshape(dS * dA, -1)
-    dist = distrax.Normal(mean, 1.0)  # ? x act_shape
-    log_prob = dist.log_prob(act_mat).reshape(dS, dA)
-    return distrax.Greedy(log_prob).probs
+    # Actions far from mean have lower probabilities
+    logits = -jnp.square(act_mat - mean).sum(axis=-1)  # (dSxdA)
+    logits = logits.reshape(dS, dA)
+    return distrax.Greedy(logits).probs
 
 
 @jax.jit
 def to_normal_probs(mean: Array, config: DdpgConfig, act_mat: Array) -> Array:
     dS, dA = mean.shape[0], mean.shape[1]
     mean = mean.reshape(dS * dA, -1)
-    dist = distrax.Normal(mean, config.normal_scale)  # ? x act_shape
-    log_prob = dist.log_prob(act_mat).reshape(dS, dA)
+    dist = distrax.Normal(mean, config.normal_scale)  # (dSxdA) x act_shape
+    log_prob = dist.log_prob(act_mat).sum(axis=-1).reshape(dS, dA)
     return distrax.Softmax(log_prob).probs

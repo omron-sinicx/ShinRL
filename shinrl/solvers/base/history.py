@@ -71,7 +71,8 @@ class History:
             config = self.DefaultConfig()
         assert isinstance(config, self.DefaultConfig)
         self.config = config
-        self.logger.info("set_config is called.", config=self.config.asdict())
+        if self.config.verbose:
+            self.logger.info("set_config is called.", config=self.config.asdict())
 
     def recent_summary(self, step_range: int = 100000) -> Dict[str, Dict[str, float]]:
         return self.scalars.recent_summary(step_range)
@@ -112,7 +113,8 @@ class History:
         # save replay buffer
         if isinstance(self.buffer, ReplayBuffer) and save_buffer:
             self.buffer.save_transitions(os.path.join(dir_path, "buffer"), safe=True)
-        self.logger.info("History saved.", dir_path=dir_path)
+        if self.config.verbose:
+            self.logger.info("History saved.", dir_path=dir_path)
 
     def load(self, dir_path: PathLike) -> None:
         # load step and epoch numbers
@@ -138,4 +140,5 @@ class History:
         if isinstance(self.buffer, ReplayBuffer) and os.path.exists(buffer_path):
             self.buffer.load_transitions(buffer_path)
 
-        self.logger.info("History loaded.", dir_path=dir_path)
+        if self.config.verbose:
+            self.logger.info("History loaded.", dir_path=dir_path)

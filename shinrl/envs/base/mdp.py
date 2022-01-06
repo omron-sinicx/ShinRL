@@ -62,7 +62,7 @@ class MDP(NamedTuple):
         assert jnp.all(row < dS * dA), "row has invalid indexes."
         assert jnp.all(0 <= col), "col has invalid indexes."
         assert jnp.all(col < dS), "col has invalid indexes."
-        assert 0.0 < mdp.discount < 1.0
+        assert 0.0 <= mdp.discount <= 1.0
         return True
 
     @staticmethod

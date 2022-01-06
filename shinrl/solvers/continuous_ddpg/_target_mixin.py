@@ -29,16 +29,18 @@ class QTargetMixIn(TargetMixIn):
         obs = self._sa_obs_mat  # (dSxdA) x obs_shape
         act = self._sa_act_mat  # (dSxdA) x act_shape
 
-        mean = self.pol_net.apply(data["PolNetTargParams"], obs)  # (dSxdA) x act_shape
-        dist = distrax.Normal(mean, 1.0)  # (dSxdA) x act_shape
-        log_prob = dist.log_prob(act).mean(axis=-1)  # (dSxdA) x 1
-        log_prob = log_prob.reshape(self.dS, self.dA)  # dS x dA
-        pol_dist = distrax.Greedy(log_prob)  # dS x dA
         q = self.q_net.apply(data["QNetTargParams"], obs, act)
         q = q.reshape(self.dS, self.dA)  # dS x dA
+
+        mean = self.pol_net.apply(data["PolNetTargParams"], obs)  # (dSxdA) x act_shape
+        # Actions far from mean have lower probabilities
+        logits = -jnp.square(act - mean).sum(axis=-1)  # (dSxdA)
+        logits = logits.reshape(self.dS, self.dA)  # dS x dA
+        policy = distrax.Greedy(logits).probs  # dS x dA
+
         return srl.expected_backup_dp(
             q,
-            pol_dist.probs,
+            policy,
             self.env.mdp.rew_mat,
             self.env.mdp.tran_mat,
             self.config.discount,

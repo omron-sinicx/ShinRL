@@ -17,6 +17,7 @@ class SolverConfig(Config):
         eval_interval (int): interval to evaluate
         add_interval (int): interval to add a scalar to the history
         steps_per_epoch (int): number of steps per one epoch
+        verbose (bool): flag to show logged information on stdout
     """
 
     seed: int = 0
@@ -25,3 +26,4 @@ class SolverConfig(Config):
     eval_interval: int = 100
     add_interval: int = 100
     steps_per_epoch: int = 1000
+    verbose: bool = True

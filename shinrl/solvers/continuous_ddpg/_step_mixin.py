@@ -24,12 +24,12 @@ def soft_target_update(
 
 class DeepDpStepMixIn:
     def step(self) -> None:
-        # Compute new Pol and Q Net params
+        # Compute new parameters
         pol_res, q_res = self.calc_params(self.data)
         pol_loss, pol_prm, pol_state = pol_res
         q_loss, q_prm, q_state = q_res
 
-        # Update params
+        # Update parameters
         self.data.update(
             {
                 "PolNetParams": pol_prm,
@@ -38,7 +38,6 @@ class DeepDpStepMixIn:
                 "QOptState": q_state,
             }
         )
-
         self.data["QNetTargParams"] = soft_target_update(
             self.data["QNetParams"],
             self.data["QNetTargParams"],
@@ -49,7 +48,8 @@ class DeepDpStepMixIn:
             self.data["PolNetTargParams"],
             self.config.polyak_rate,
         )
-        # Update Q & Policy tables
+
+        # Update ExplorePolicy & EvaluatePolicy tables
         self.update_tb_data()
         return {"PolLoss": pol_loss.item(), "QLoss": q_loss.item()}
 
@@ -60,18 +60,18 @@ class DeepRlStepMixIn:
         self.buffer = srl.make_replay_buffer(self.env, self.config.buffer_size)
 
     def step(self) -> None:
+        # Collect samples
         samples = self.explore(store_to_buffer=True)
         samples = srl.Sample(**self.buffer.sample(self.config.batch_size))
-
         if self.buffer.get_stored_size() < self.config.replay_start_size:
             return {}
 
-        # Compute new Pol and Q Net params
+        # Compute new parameters
         pol_res, q_res = self.calc_params(self.data, samples)
         pol_loss, pol_prm, pol_state = pol_res
         q_loss, q_prm, q_state = q_res
 
-        # Update params
+        # Update parameters
         self.data.update(
             {
                 "PolNetParams": pol_prm,
@@ -80,18 +80,19 @@ class DeepRlStepMixIn:
                 "QOptState": q_state,
             }
         )
-
         self.data["QNetTargParams"] = soft_target_update(
             self.data["QNetParams"],
             self.data["QNetTargParams"],
             self.config.polyak_rate,
         )
+
         self.data["PolNetTargParams"] = soft_target_update(
             self.data["PolNetParams"],
             self.data["PolNetTargParams"],
             self.config.polyak_rate,
         )
-        # Update Q & Policy tables
+
         if self.is_shin_env:
+            # Update ExplorePolicy & EvaluatePolicy tables
             self.update_tb_data()
         return {"PolLoss": pol_loss.item(), "QLoss": q_loss.item()}

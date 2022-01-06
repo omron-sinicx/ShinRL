@@ -31,8 +31,8 @@ class BuildNetMixIn:
         self.data["QNetTargParams"] = deepcopy(q_param)
         self.data["QOptState"] = q_state
         self.data["PolNetParams"] = pol_param
-        self.data["PolNetTargParams"] = deepcopy(pol_param)
         self.data["PolOptState"] = pol_state
+        self.data["PolNetTargParams"] = deepcopy(pol_param)
 
     def _build_net(self):
         depth, hidden = self.config.depth, self.config.hidden

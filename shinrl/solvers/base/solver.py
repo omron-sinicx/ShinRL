@@ -99,9 +99,10 @@ class BaseSolver(ABC, History):
         self.set_env(env)
         self.seed(self.config.seed)
         self.is_initialized = True
-        self.logger.info(
-            "Solver is initialized.", mixins=self.mixins, methods=self.methods_str
-        )
+        if self.config.verbose:
+            self.logger.info(
+                "Solver is initialized.", mixins=self.mixins, methods=self.methods_str
+            )
 
     def seed(self, seed: int = 0) -> None:
         self.key = jax.random.PRNGKey(seed)
@@ -140,7 +141,7 @@ class BaseSolver(ABC, History):
                     f"env.config.discount != solver.config.discount ({env.config.discount} != {self.config.discount}). \
                     This may cause an unexpected behavior."
                 )
-            self.dS, self.dA, self.horizon = env.mdp.dS, env.mdp.dA, env.config.horizon
+            self.dS, self.dA, self.horizon = env.dS, env.dA, env.config.horizon
 
         # Reset env if necessary
         if reset:
@@ -162,7 +163,8 @@ class BaseSolver(ABC, History):
 
         self.env_id += 1
         self.logger = structlog.get_logger(solver_id=self.solver_id, env_id=self.env_id)
-        self.logger.info("set_env is called.")
+        if self.config.verbose:
+            self.logger.info("set_env is called.")
 
     def run(self) -> None:
         """
@@ -185,8 +187,9 @@ class BaseSolver(ABC, History):
                 self.add_scalar(key, val)
             self.n_step += 1
         self.n_epoch += 1
-        self.logger.info(
-            f"Epoch {self.n_epoch} has ended.",
-            epoch_summary=self.recent_summary(num_steps),
-            data=list(self.data.keys()),
-        )
+        if self.config.verbose:
+            self.logger.info(
+                f"Epoch {self.n_epoch} has ended.",
+                epoch_summary=self.recent_summary(num_steps),
+                data=list(self.data.keys()),
+            )

@@ -40,7 +40,7 @@ class BuildCalcParamsDpMixIn:
 
             # Compute new Pol-Net params
             q = self.q_net.apply(q_prm, obs)
-            logits= self.target_log_pol(q)
+            logits = self.target_log_pol(q)
             pol_loss, pol_grad = value_and_grad(calc_pol_loss)(pol_prm, logits, obs)
             updates, pol_state = self.log_pol_opt.update(pol_grad, pol_opt_st, pol_prm)
             new_pol_prm = apply_updates(pol_prm, updates)
