@@ -26,8 +26,8 @@ def huber_loss(pred: Array, target: Array) -> float:
 @jax.jit
 def cross_entropy_loss(logits: Array, targ_logits: Array) -> float:
     chex.assert_equal_shape((logits, targ_logits))
-    targ_idx = targ_logits.argmax(axis=-1)[:, None]
-    loss = optax.softmax_cross_entropy(logits, targ_idx)
+    targ = jax.nn.softmax(targ_logits, axis=-1)
+    loss = optax.softmax_cross_entropy(logits, targ)
     return loss.mean()
 
 

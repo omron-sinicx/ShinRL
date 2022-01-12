@@ -63,11 +63,11 @@ def test_softmax_net_act():
     chex.assert_rank(log_p, 0)
 
 
-def test_fixed_scale_normal_net_act():
-    from shinrl import build_fixed_scale_normal_net_act
+def test_normal_diagonal_net_act():
+    from shinrl import build_normal_diagonal_net_act
 
     net = build_obs_forward_fc(2)
-    net_act = build_fixed_scale_normal_net_act(net)
+    net_act = build_normal_diagonal_net_act(net)
 
     key = jax.random.PRNGKey(0)
     sample_init = jnp.ones([1, 3])
@@ -78,18 +78,6 @@ def test_fixed_scale_normal_net_act():
     chex.assert_shape(act, (2,))
     chex.assert_shape(log_p, (2,))
 
-
-def test_continuous_greedy_net_act():
-    from shinrl import build_continuous_greedy_net_act
-
-    net = build_obs_forward_fc(2)
-    net_act = build_continuous_greedy_net_act(net)
-
-    key = jax.random.PRNGKey(0)
-    sample_init = jnp.ones([1, 3])
-    params = net.init(key, sample_init)
-
-    obs = jnp.ones([3])
-    _, act, log_p = net_act(key, obs, params)
+    _, act, log_p = net_act(key, obs, params, 0.0)
     chex.assert_shape(act, (2,))
     chex.assert_shape(log_p, (2,))

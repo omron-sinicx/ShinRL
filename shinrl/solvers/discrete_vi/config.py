@@ -21,7 +21,7 @@ class EXPLORE(enum.IntEnum):
     softmax = auto()
 
 
-class EXPLOIT(enum.IntEnum):
+class EVALUATE(enum.IntEnum):
     softmax = auto()
     greedy = auto()
 
@@ -57,7 +57,7 @@ class ViConfig(SolverConfig):
         explore (EXPLORE):
             Type of the policy for exploration.
             The solver uses all the state-action pairs if 'oracle'.
-        exploit (EXPLOIT): Type of the policy for evaluation.
+        evaluate (EVALUATE): Type of the policy for evaluation.
         approx (APPROX): Type of the function approximation.
 
         eps_end (float): Epsilon value at the end of the eps-greedy exploration.
@@ -84,14 +84,14 @@ class ViConfig(SolverConfig):
 
     # class variables
     EXPLORE: ClassVar[Type[EXPLORE]] = EXPLORE
-    EXPLOIT: ClassVar[Type[EXPLOIT]] = EXPLOIT
+    EVALUATE: ClassVar[Type[EVALUATE]] = EVALUATE
     APPROX: ClassVar[Type[APPROX]] = APPROX
     ACTIVATION: ClassVar[Type[ACTIVATION]] = ACTIVATION
     LOSS: ClassVar[Type[LOSS]] = LOSS
     OPTIMIZER: ClassVar[Type[OPTIMIZER]] = OPTIMIZER
 
     explore: EXPLORE = EXPLORE.oracle
-    exploit: EXPLOIT = EXPLOIT.greedy
+    evaluate: EVALUATE = EVALUATE.greedy
     approx: APPROX = APPROX.tabular
 
     # algorithm configs

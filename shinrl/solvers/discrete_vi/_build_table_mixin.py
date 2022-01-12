@@ -43,7 +43,7 @@ class BuildTableMixIn:
             "softmax": lambda: logits_to_softmax(q, config),
         }
         self.data["ExplorePolicy"] = q_to_pol[config.explore.name]()
-        self.data["EvaluatePolicy"] = q_to_pol[config.exploit.name]()
+        self.data["EvaluatePolicy"] = q_to_pol[config.evaluate.name]()
 
     def _build_pred_all(self):
         pred_all = lambda params: self.q_net.apply(params, self.env.mdp.obs_mat)

@@ -43,7 +43,7 @@ class BuildTableMixIn:
             "normal": lambda: to_normal_probs(mean, config, act_mat),
         }
         self.data["ExplorePolicy"] = mean_to_pol[config.explore.name]()
-        self.data["EvaluatePolicy"] = mean_to_pol[config.exploit.name]()
+        self.data["EvaluatePolicy"] = mean_to_pol[config.evaluate.name]()
 
     def _build_pred_all(self):
         dS, dA = self.dS, self.dA

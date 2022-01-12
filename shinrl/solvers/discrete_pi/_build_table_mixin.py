@@ -44,7 +44,7 @@ class BuildTableMixIn:
             "identity": lambda: log_pol,
         }
         self.data["ExplorePolicy"] = to_policy[config.explore.name]()
-        self.data["EvaluatePolicy"] = to_policy[config.exploit.name]()
+        self.data["EvaluatePolicy"] = to_policy[config.evaluate.name]()
 
     def _build_pred_all(self):
         obs = self.env.mdp.obs_mat

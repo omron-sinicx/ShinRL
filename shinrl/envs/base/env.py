@@ -1,3 +1,7 @@
+"""
+Author: Toshinori Kitamura
+Affiliation: NAIST & OSX
+"""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple
 
@@ -5,11 +9,6 @@ import gym
 import jax
 import jax.numpy as jnp
 import numpy as np
-
-"""
-Author: Toshinori Kitamura
-Affiliation: NAIST & OSX
-"""
 from chex import Array, PRNGKey
 from cpprb import ReplayBuffer
 

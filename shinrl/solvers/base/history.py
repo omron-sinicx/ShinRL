@@ -49,11 +49,25 @@ class History:
         self.init_history()
         self.logger: BoundLogger = structlog.get_logger()
 
+    @property
+    def n_step(self) -> int:
+        return self.data["n_step"]
+
+    @n_step.setter
+    def n_step(self, step: int) -> None:
+        self.data["n_step"] = step
+
+    @property
+    def n_epoch(self) -> int:
+        return self.data["n_epoch"]
+
+    @n_epoch.setter
+    def n_epoch(self, epoch: int) -> None:
+        self.data["n_epoch"] = epoch
+
     def init_history(self) -> None:
-        self.n_step: int = 0
-        self.n_epoch: int = 0
         self.scalars: Scalars = srl.Scalars()
-        self.data: DataDict = {}
+        self.data: DataDict = {"n_step": 0, "n_epoch": 0}
         self.config: srl.Config = self.DefaultConfig()
         self.buffer: Optional[ReplayBuffer] = None
 

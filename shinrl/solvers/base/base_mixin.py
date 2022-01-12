@@ -28,7 +28,7 @@ class BaseGymEvalMixIn:
     # ########## YOU NEED TO IMPLEMENT HERE ##########
 
     def eval_act(self, key: PRNGKey, obs: OBS) -> Tuple[PRNGKey, ACT, LOG_PROB]:
-        """Act function for exploitation. Used in evaluation.
+        """Act function for evaluateation. Used in evaluation.
 
         Args:
             key (PRNGKey)

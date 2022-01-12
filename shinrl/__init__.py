@@ -19,15 +19,15 @@ from ._calc.build_net import build_obs_act_forward_conv  # NOQA isort:skip
 from ._calc.build_net import build_obs_act_forward_fc  # NOQA isort:skip
 from ._calc.build_net import build_obs_forward_conv  # NOQA isort:skip
 from ._calc.build_net import build_obs_forward_fc  # NOQA isort:skip
-from ._calc.build_net_act import build_continuous_greedy_net_act  # NOQA isort:skip
 from ._calc.build_net_act import build_discrete_greedy_net_act  # NOQA isort:skip
 from ._calc.build_net_act import build_eps_greedy_net_act  # NOQA isort:skip
-from ._calc.build_net_act import build_fixed_scale_normal_net_act  # NOQA isort:skip
+from ._calc.build_net_act import build_normal_diagonal_net_act  # NOQA isort:skip
 from ._calc.build_net_act import build_softmax_net_act  # NOQA isort:skip
 from ._calc.collect_samples import ACT_FN  # NOQA isort:skip
 from ._calc.collect_samples import Sample  # NOQA isort:skip
 from ._calc.collect_samples import collect_samples  # NOQA isort:skip
 from ._calc.collect_samples import make_replay_buffer  # NOQA isort:skip
+from ._calc.distributions import SquashedNormal  # NOQA isort:skip
 from ._calc.draw import draw_circle, line_aa  # NOQA isort:skip
 from ._calc.epsilon_greedy import calc_eps  # NOQA isort:skip
 from ._calc.loss import (  # NOQA isort:skip

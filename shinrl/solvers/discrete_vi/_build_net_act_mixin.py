@@ -15,7 +15,7 @@ class BuildNetActMixIn:
     def initialize(self, env: gym.Env, config: Optional[ViConfig] = None) -> None:
         super().initialize(env, config)
         self.explore_act = self._build_act_fn(self.config.explore.name)
-        self.eval_act = self._build_act_fn(self.config.exploit.name)
+        self.eval_act = self._build_act_fn(self.config.evaluate.name)
 
     def _build_act_fn(self, flag) -> srl.ACT_FN:
         net = self.q_net

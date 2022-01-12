@@ -14,7 +14,7 @@ install_requires = [
     "chex",
     "dm-haiku",
     "optax",
-    "distrax>=0.0.2",
+    "distrax>=0.1.0",
     "celluloid",
 ]
 

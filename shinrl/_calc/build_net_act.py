@@ -105,36 +105,13 @@ def build_softmax_net_act(net: hk.Transformed) -> NETACT:
 # ----- Continuous action -----
 
 
-def build_continuous_greedy_net_act(net: hk.Transformed) -> NETACT:
-    """Build a greedy net_act function for continuous acition.
+def build_normal_diagonal_net_act(net: hk.Transformed) -> NETACT:
+    """Build a net_act function of a normal distribution with
+    diagonal covariance matrix. Return its mean values if scale == 0.0.
 
     Args:
         net(hk.Transformed):
-            Takes [1 x obs] and returns [1 x 1] Array.
-
-    Returns:
-        NETACT
-    """
-
-    def net_act(
-        key: PRNGKey, obs: Array, params: hk.Params
-    ) -> Tuple[PRNGKey, Array, Array]:
-        new_key, key = jax.random.split(key)
-        obs = jnp.expand_dims(obs, axis=0)  # (1, obs.shape)
-        act = jnp.squeeze(net.apply(params, obs), axis=0)  # (, )
-        log_prob = jnp.zeros_like(act)  # (, )
-        return new_key, act, log_prob
-
-    return jax.jit(net_act)
-
-
-def build_fixed_scale_normal_net_act(net: hk.Transformed) -> NETACT:
-    """Build a net_act function with normal distribution.
-    The distribution has a constant scaling factor.
-
-    Args:
-        net(hk.Transformed):
-            Takes [1 x obs] and returns [1 x 1] Array.
+            Takes [1 x obs] and returns [1 x dA] Array.
 
     Returns:
         NETACT
@@ -146,6 +123,31 @@ def build_fixed_scale_normal_net_act(net: hk.Transformed) -> NETACT:
         new_key, key = jax.random.split(key)
         obs = jnp.expand_dims(obs, axis=0)  # (1, obs.shape)
         dist = distrax.Normal(net.apply(params, obs), scale)
+        act = jnp.squeeze(dist.sample(seed=key), axis=0)  # (, )
+        log_prob = jnp.squeeze(dist.log_prob(act), axis=0)  # (, )
+        return new_key, act, log_prob
+
+    return jax.jit(net_act)
+
+
+def build_squashed_normal_net_act(net: hk.Transformed) -> NETACT:
+    """Build a net_act function of a squashed normal distribution with
+    diagonal covariance matrix.
+
+    Args:
+        net(hk.Transformed):
+            Takes [1 x obs] and returns [1 x dA] Array.
+
+    Returns:
+        NETACT
+    """
+
+    def net_act(
+        key: PRNGKey, obs: Array, params: hk.Params, scale: Numeric
+    ) -> Tuple[PRNGKey, Array, Array]:
+        new_key, key = jax.random.split(key)
+        obs = jnp.expand_dims(obs, axis=0)  # (1, obs.shape)
+        dist = srl.SquashedNormal(net.apply(params, obs), scale)
         act = jnp.squeeze(dist.sample(seed=key), axis=0)  # (, )
         log_prob = jnp.squeeze(dist.log_prob(act), axis=0)  # (, )
         return new_key, act, log_prob

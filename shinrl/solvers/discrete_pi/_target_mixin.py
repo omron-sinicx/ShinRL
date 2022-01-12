@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 import distrax
 import jax
+import jax.numpy as jnp
 from chex import Array
 
 import shinrl as srl
@@ -13,7 +14,7 @@ import shinrl as srl
 
 class TargetMixIn(ABC):
     @abstractmethod
-    def target_log_pol(self, q: Array) -> Array:
+    def target_log_pol(self, q: Array, data: srl.DataDict) -> Array:
         pass
 
     @abstractmethod
@@ -38,8 +39,14 @@ class QTargetMixIn(TargetMixIn):
         super().initialize(env, config)
         self.pol_loss_fn = srl.cross_entropy_loss
 
-    def target_log_pol(self, q: Array) -> Array:
-        return distrax.Greedy(q).logits
+    def target_log_pol(self, q: Array, data: srl.DataDict) -> Array:
+        eps = srl.calc_eps(
+            data["n_step"],
+            self.config.eps_decay_target_pol,
+            0,
+            1e-5,  # for numerical stability
+        )
+        return distrax.EpsilonGreedy(q, eps).logits
 
     def target_q_tabular_dp(self, data: srl.DataDict) -> Array:
         q = data["Q"]
@@ -99,7 +106,7 @@ class SoftQTargetMixIn(TargetMixIn):
         super().initialize(env, config)
         self.pol_loss_fn = srl.kl_loss
 
-    def target_log_pol(self, q: Array) -> Array:
+    def target_log_pol(self, q: Array, data: srl.DataDict) -> Array:
         return q / self.config.er_coef
 
     def target_q_tabular_dp(self, data: srl.DataDict) -> Array:

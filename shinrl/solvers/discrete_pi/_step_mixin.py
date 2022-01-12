@@ -15,7 +15,7 @@ from .config import PiConfig
 class TabularDpStepMixIn:
     def step(self):
         # Update Policy & Q tables
-        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"])
+        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"], self.data)
         self.data["Q"] = self.target_q_tabular_dp(self.data)
 
         # Update ExplorePolicy & EvaluatePolicy tables
@@ -29,7 +29,7 @@ class TabularRlStepMixIn:
         samples = self.explore()
 
         # Update Policy & Q tables
-        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"])
+        self.data["LogPolicy"] = self.target_log_pol(self.data["Q"], self.data)
         q_targ = self.target_q_tabular_rl(self.data, samples)
         state, act = samples.state, samples.act  # B
         q = self.data["Q"]
