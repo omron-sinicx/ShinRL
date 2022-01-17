@@ -40,9 +40,11 @@ def test_gym_eval():
             return [MockActMixIn, srl.BaseGymEvalMixIn, MockSolver]
 
     env = srl.NormalizeActionWrapper(gym.make("Pendulum-v0"))
+    eval_env = srl.NormalizeActionWrapper(gym.make("Pendulum-v0"))
     config = MockSolver.DefaultConfig()
     mixins = MockSolver.make_mixins()
     solver = MockSolver.factory(env, config, mixins)
+    solver.set_eval_env(eval_env)
     res = solver.evaluate()
     assert np.isscalar(res["Return"])
 

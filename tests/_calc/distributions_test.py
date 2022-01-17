@@ -1,7 +1,8 @@
-import shinrl as srl
-import jax.numpy as jnp
-import jax
 import chex
+import jax
+import jax.numpy as jnp
+
+import shinrl as srl
 
 
 def test_squashed_normal():

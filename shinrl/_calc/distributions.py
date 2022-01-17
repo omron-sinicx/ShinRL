@@ -1,12 +1,13 @@
 """ Distrax distributions. """
 
 
+from typing import Tuple
+
 import chex
+import jax
+import jax.numpy as jnp
 from distrax import Distribution, Normal
 from distrax._src.distributions.distribution import PRNGKey
-from typing import Tuple
-import jax.numpy as jnp
-import jax
 
 Numeric = chex.Numeric
 Array = chex.Array
@@ -24,12 +25,12 @@ class SquashedNormal(Distribution):
 
     def log_prob(self, value: Array) -> Array:
         log_prob = self._unsquashed_dist.log_prob(value).sum(axis=-1, keepdims=True)
-        log_prob -= (2 * (jnp.log(2) - value - jax.nn.softplus(-2 * value)))
+        log_prob -= 2 * (jnp.log(2) - value - jax.nn.softplus(-2 * value))
         return log_prob
 
     def _sample_n(self, key: PRNGKey, n: int) -> Array:
         unsquashed = self._unsquashed_dist._sample_n(key, n)
         return jnp.tanh(unsquashed)
-    
+
     def event_shape(self) -> Tuple[int, ...]:
         return ()

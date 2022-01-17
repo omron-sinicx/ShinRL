@@ -4,7 +4,6 @@ Affiliation: NAIST & OSX
 """
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Dict, Tuple
 
 import distrax
@@ -21,9 +20,28 @@ OBS, ACT, LOG_PROB = Array, Array, Array
 class BaseGymEvalMixIn:
     """Base mixin for gym.Env evaluation."""
 
-    def initialize(self, env, config=None) -> None:
-        super().initialize(env, config)
-        self._eval_env = deepcopy(self.env)
+    def set_eval_env(self, env: gym.Env) -> None:
+        """Set the environment to self.eval_env.
+        Args:
+            env (gym.Env): Environment for evaluation.
+        """
+        self.eval_env = env
+
+        # Reset eval_env if necessary
+        if isinstance(self.eval_env, gym.wrappers.Monitor):
+            # With Monitor, reset() cannot be called unless the episode is over.
+            if self.eval_env.stats_recorder.steps is None:
+                self.eval_env.obs = self.eval_env.reset()
+            else:
+                done = False
+                while not done:
+                    act = self.eval_env.action_space.sample()
+                    _, _, done, _ = self.eval_env.step(act)
+                self.eval_env.obs = self.eval_env.reset()
+        else:
+            self.eval_env.obs = self.eval_env.reset()
+        if self.config.verbose:
+            self.logger.info("set_eval_env is called.")
 
     # ########## YOU NEED TO IMPLEMENT HERE ##########
 
@@ -51,10 +69,13 @@ class BaseGymEvalMixIn:
         Returns:
             Dict[str, float]: Dict of evaluation results.
         """
-        self._eval_env.obs = self._eval_env.reset()
+        assert hasattr(
+            self, "eval_env"
+        ), "eval_env is not set. Call set_eval_env(eval_env) before evaluate."
+        self.eval_env.obs = self.eval_env.reset()
         self.key, samples = collect_samples(
             key=self.key,
-            env=self._eval_env,
+            env=self.eval_env,
             act_fn=self.eval_act,
             num_episodes=self.config.eval_trials,
             use_state=False,
